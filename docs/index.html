@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>document.documentElement.classList.add("js")</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brainrot — watch your brain rot, one reel at a time</title>
+<meta name="description" content="Brainrot counts every Instagram Reel you swipe through, on your Android phone, offline, and shows a brain that gets grosser with every one.">
+<meta name="theme-color" content="#0c0a10">
+<meta property="og:title" content="Brainrot — watch your brain rot, one reel at a time">
+<meta property="og:description" content="Counts every Reel you swipe. A brain rots on top of Instagram as the number climbs. Offline, no account.">
+<meta property="og:image" content="assets/brain-6.png">
+<link rel="icon" href="assets/brain-0.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=JetBrains+Mono:wght@500;700&family=Rubik+Wet+Paint&display=swap" rel="stylesheet">
+<style>
+  /* ------------------------------------------------------------------ tokens */
+  :root {
+    --bg: #0c0a10;
+    --bg-2: #120f18;
+    --card: #17131f;
+    --card-2: #1f1a29;
+    --line: #2c2537;
+    --ink: #f5f1e8;
+    --ink-2: #c9c4d3;
+    --muted: #8f89a0;
+    --slime: #b8ff3c;
+    --slime-deep: #7fcf00;
+    --pink: #ff4fd8;
+    --cyan: #49e6ff;
+    --sticker: #f5f1e8;
+    --black: #07060a;
+    --r: 22px;
+    --shadow-hard: 5px 5px 0 var(--black);
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --drip: "Rubik Wet Paint", "Bricolage Grotesque", cursive;
+    --gutter: clamp(16px, 4vw, 40px);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 17px;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; height: auto; display: block; }
+  a { color: inherit; }
+  ::selection { background: var(--slime); color: var(--black); }
+
+  /* grain + slime blobs behind everything */
+  body::before {
+    content: "";
+    position: fixed; inset: -50%;
+    background:
+      radial-gradient(40% 30% at 20% 20%, rgba(184,255,60,.13), transparent 70%),
+      radial-gradient(35% 30% at 85% 30%, rgba(255,79,216,.12), transparent 70%),
+      radial-gradient(40% 35% at 60% 90%, rgba(73,230,255,.09), transparent 70%);
+    animation: drift 28s ease-in-out infinite alternate;
+    will-change: transform;
+    z-index: -2;
+    pointer-events: none;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+    opacity: .045;
+    z-index: -1;
+    pointer-events: none;
+  }
+  @keyframes drift { to { transform: translate(6%, -4%) rotate(8deg); } }
+
+  .wrap { width: min(1160px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+  section { padding: clamp(72px, 10vw, 128px) 0 0; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--slime);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .kicker::before { content: ""; width: 22px; height: 2px; background: currentColor; }
+  h2 {
+    font-size: clamp(36px, 6vw, 64px);
+    line-height: 1;
+    letter-spacing: -.035em;
+    font-weight: 800;
+    margin: 14px 0 18px;
+  }
+  .lede { color: var(--ink-2); font-size: clamp(17px, 2vw, 20px); max-width: 60ch; margin: 0; }
+  .drip { font-family: var(--drip); font-weight: 400; color: var(--slime); letter-spacing: 0; }
+
+  /* ------------------------------------------------------------------ buttons */
+  .btn {
+    --bg-btn: var(--slime);
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 16px 24px;
+    border-radius: 999px;
+    background: var(--bg-btn);
+    color: var(--black);
+    font-weight: 800;
+    font-size: 18px;
+    text-decoration: none;
+    border: 2px solid var(--black);
+    box-shadow: var(--shadow-hard);
+    transition: transform .15s ease, box-shadow .15s ease;
+    cursor: pointer;
+  }
+  .btn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--black); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--black); }
+  .btn small { font-family: var(--mono); font-weight: 500; font-size: 12px; opacity: .75; }
+  .btn svg { width: 22px; height: 22px; flex: none; }
+  .btn-ghost {
+    background: transparent; color: var(--ink);
+    border-color: var(--line); box-shadow: none;
+  }
+  .btn-ghost:hover { border-color: var(--ink-2); box-shadow: none; transform: none; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible {
+    outline: 3px solid var(--cyan); outline-offset: 3px;
+  }
+
+  /* ------------------------------------------------------------------ nav */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    background: rgba(12,10,16,.72);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .nav .wrap { display: flex; align-items: center; gap: 24px; height: 68px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 800; font-size: 22px; letter-spacing: -.03em; }
+  .logo img { width: 44px; height: auto; }
+  .nav-links { display: flex; gap: 22px; margin-left: auto; }
+  .nav-links a { text-decoration: none; color: var(--ink-2); font-size: 15px; font-weight: 600; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav .btn { padding: 10px 18px; font-size: 15px; box-shadow: 3px 3px 0 var(--black); }
+  @media (max-width: 760px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+
+  /* ------------------------------------------------------------------ hero */
+  .hero { padding-top: clamp(40px, 7vw, 88px); }
+  .hero .wrap { display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+  @media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; } }
+
+  .tag {
+    display: inline-flex; gap: 10px; align-items: center;
+    font-family: var(--mono); font-size: 12.5px;
+    padding: 7px 12px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line); color: var(--ink-2);
+  }
+  .tag b { color: var(--slime); font-weight: 700; }
+  .hero h1 {
+    font-size: clamp(48px, 8.6vw, 104px);
+    line-height: .92;
+    letter-spacing: -.05em;
+    font-weight: 800;
+    margin: 22px 0 22px;
+  }
+  .hero h1 .drip { font-size: 1.08em; display: inline-block; transform: rotate(-3deg) translateY(4px); text-shadow: 0 0 40px rgba(184,255,60,.35); }
+  .hero .lede { font-size: clamp(18px, 2.2vw, 21px); }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 32px 0 26px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+  .chips li {
+    font-size: 14px; font-weight: 600;
+    padding: 6px 12px 6px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--line); color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .chips li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--slime); box-shadow: 0 0 10px var(--slime); }
+  .desktop-note { display: none; margin-top: 22px; gap: 16px; align-items: center; padding: 14px; border-radius: 18px; background: var(--card); border: 1px dashed var(--line); max-width: 460px; }
+  .desktop-note.show { display: flex; }
+  .desktop-note .qr { width: 104px; height: 104px; flex: none; background: var(--sticker); border-radius: 12px; padding: 6px; }
+  .desktop-note .qr svg { width: 100%; height: 100%; display: block; }
+  .desktop-note p { margin: 0; font-size: 15px; color: var(--ink-2); }
+  .desktop-note strong { color: var(--ink); }
+
+  /* phone mockup */
+  .stage { position: relative; justify-self: center; width: min(340px, 82vw); }
+  .phone {
+    position: relative;
+    aspect-ratio: 9 / 18.6;
+    border-radius: 46px;
+    padding: 11px;
+    background: linear-gradient(145deg, #2c2833, #0d0b10);
+    box-shadow: 0 0 0 2px #38323f, 0 40px 80px -20px rgba(0,0,0,.8), 0 0 120px -20px rgba(184,255,60,.25);
+    transform: rotate(3deg);
+  }
+  .phone .screen { width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: #111; position: relative; }
+  .phone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .phone .notch { position: absolute; top: 20px; left: 50%; width: 12px; height: 12px; border-radius: 50%; background: #000; transform: translateX(-50%); z-index: 2; }
+  .float-brain {
+    position: absolute; right: -34px; top: 18%;
+    width: 130px;
+    animation: bob 3.4s ease-in-out infinite;
+    filter: drop-shadow(0 16px 20px rgba(0,0,0,.55));
+    z-index: 3;
+  }
+  .float-brain .bubble {
+    position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
+    background: var(--black); color: var(--ink); border: 2px solid var(--slime);
+    font-family: var(--mono); font-weight: 700; font-size: 14px;
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .sticker {
+    position: absolute; z-index: 4;
+    font-weight: 800; font-size: 15px; line-height: 1.1;
+    padding: 10px 14px; border-radius: 14px;
+    border: 2px solid var(--black); box-shadow: 4px 4px 0 var(--black);
+    color: var(--black);
+  }
+  .sticker.s1 { left: -30px; bottom: 7%; background: var(--pink); transform: rotate(-8deg); }
+  .sticker.s2 { right: -18px; bottom: 20%; background: var(--cyan); transform: rotate(6deg); font-family: var(--mono); font-size: 12px; }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-14px) rotate(3deg); } }
+  @media (max-width: 480px) { .float-brain { right: -14px; width: 104px; } .sticker.s1 { left: -8px; } }
+
+  /* ------------------------------------------------------------------ marquee */
+  .marquee { margin-top: clamp(64px, 9vw, 110px); overflow: hidden; }
+  .band {
+    display: flex; width: max-content;
+    padding: 14px 0;
+    font-weight: 800; font-size: clamp(18px, 2.4vw, 26px); letter-spacing: -.01em; text-transform: uppercase;
+    border-block: 2px solid var(--black);
+    white-space: nowrap;
+  }
+  .band span { padding-right: 28px; }
+  .band i { font-style: normal; padding: 0 22px 0 0; }
+  .tilt { width: 110%; margin-left: -5%; }
+  .tilt.a { transform: rotate(-2deg); position: relative; z-index: 1; }
+  .tilt.b { transform: rotate(1.5deg); margin-top: -4px; }
+  .band.a { background: var(--slime); color: var(--black); animation: slide 38s linear infinite; }
+  .band.b { background: var(--pink); color: var(--black); animation: slide 44s linear infinite reverse; }
+  @keyframes slide { from { translate: 0 0; } to { translate: -50% 0; } }
+
+  /* ------------------------------------------------------------------ rot scale */
+  .rot { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(28px, 5vw, 64px); align-items: center; margin-top: 40px; }
+  @media (max-width: 900px) { .rot { grid-template-columns: 1fr; } }
+  .rot-viewer {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 32px;
+    padding: 28px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .rot-viewer::before {
+    content: ""; position: absolute; inset: auto -20% -40% -20%; height: 70%;
+    background: radial-gradient(closest-side, var(--glow, rgba(255,120,150,.25)), transparent);
+    transition: background .4s;
+  }
+  .rot-brain { position: relative; width: min(280px, 70%); margin: 10px auto 6px; aspect-ratio: 213 / 179; }
+  .rot-brain img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity .25s, transform .35s cubic-bezier(.3,1.6,.5,1); }
+  .rot-brain.pop img { transform: scale(1.08) rotate(-3deg); }
+  .rot-count { font-size: clamp(64px, 10vw, 96px); font-weight: 800; letter-spacing: -.05em; line-height: 1; position: relative; font-variant-numeric: tabular-nums; }
+  .rot-label { font-weight: 800; font-size: 26px; letter-spacing: -.02em; position: relative; margin-top: 4px; }
+  .rot-next { color: var(--muted); font-size: 15px; position: relative; min-height: 1.5em; }
+  .slider { position: relative; margin: 22px 4px 4px; }
+  .slider label { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: left; margin-bottom: 10px; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 12px; border-radius: 999px;
+    background: linear-gradient(90deg, #ff9fb0, #e8a07a, #b7b35c, #7a9a3a, #56722d, #3c4a22) ;
+    border: 2px solid var(--black);
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--sticker); border: 3px solid var(--black); box-shadow: 3px 3px 0 var(--black);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--sticker); border: 3px solid var(--black); box-shadow: 3px 3px 0 var(--black);
+  }
+  .stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; list-style: none; padding: 0; margin: 0; }
+  .stages button {
+    width: 100%; font: inherit; color: inherit; cursor: pointer;
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 12px 10px 12px; text-align: center;
+    transition: transform .15s, border-color .15s, background .15s;
+  }
+  .stages button:hover { transform: translateY(-3px); border-color: var(--ink-2); }
+  .stages button[aria-pressed=true] { background: var(--sticker); color: var(--black); border-color: var(--black); box-shadow: 4px 4px 0 var(--slime); }
+  .stages img { width: 72px; margin: 0 auto 6px; aspect-ratio: 213/179; object-fit: contain; }
+  .stages b { display: block; font-size: 16px; letter-spacing: -.01em; }
+  .stages span { font-family: var(--mono); font-size: 12px; opacity: .7; }
+  .rot-copy p { color: var(--ink-2); }
+  .rot-copy p + p { margin-top: 12px; }
+
+  /* ------------------------------------------------------------------ bento */
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 44px; }
+  .tile {
+    position: relative; overflow: hidden;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+    padding: clamp(20px, 3vw, 30px);
+    grid-column: span 2;
+  }
+  .tile.w3 { grid-column: span 3; }
+  .tile.w4 { grid-column: span 4; }
+  @media (max-width: 900px) { .tile, .tile.w3, .tile.w4 { grid-column: span 6; } }
+  .tile h3 { font-size: 24px; letter-spacing: -.025em; line-height: 1.1; margin: 14px 0 8px; font-weight: 800; }
+  .tile p { color: var(--ink-2); margin: 0; font-size: 16px; }
+  .tile ul { color: var(--ink-2); margin: 12px 0 0; padding-left: 18px; font-size: 15.5px; }
+  .tile ul li + li { margin-top: 4px; }
+  .ico {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: grid; place-items: center;
+    background: var(--c, var(--slime)); color: var(--black);
+    border: 2px solid var(--black); box-shadow: 3px 3px 0 var(--black);
+  }
+  .ico svg { width: 24px; height: 24px; }
+  .tile.hot { background: linear-gradient(160deg, #1d2a10, var(--card) 60%); border-color: #34491a; }
+  .tile.hot .overlay-demo { position: absolute; right: 18px; top: 18px; width: 120px; animation: bob 3s ease-in-out infinite; }
+  .overlay-demo .drop { position: absolute; left: 44%; top: 70%; width: 18px; opacity: 0; animation: drop 3s ease-in infinite; }
+  @keyframes drop { 0%, 55% { opacity: 0; transform: translateY(0); } 60% { opacity: 1; } 100% { opacity: 0; transform: translateY(70px); } }
+  @media (max-width: 560px) { .tile.hot .overlay-demo { position: relative; right: auto; top: auto; margin: 0 0 6px auto; width: 96px; } }
+  .tile.hot .txt { max-width: 70%; }
+  @media (max-width: 560px) { .tile.hot .txt { max-width: none; } }
+
+  .mini-bars { display: flex; align-items: flex-end; gap: 3px; height: 70px; margin-top: 18px; }
+  .mini-bars i { flex: 1; background: var(--pink); border-radius: 4px 4px 0 0; opacity: .9; }
+  .widget-demo {
+    margin-top: 18px; display: flex; align-items: center; gap: 12px;
+    background: #0f0d13; border-radius: 22px; padding: 12px 16px; border: 1px solid var(--line);
+  }
+  .widget-demo img { width: 58px; }
+  .widget-demo b { font-size: 30px; letter-spacing: -.04em; line-height: 1; }
+  .widget-demo small { display: block; color: var(--muted); font-size: 13px; }
+
+  /* ------------------------------------------------------------------ how */
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; counter-reset: how; }
+  @media (max-width: 900px) { .how { grid-template-columns: 1fr; } }
+  .how li {
+    list-style: none; counter-increment: how;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 26px;
+  }
+  .how li::before {
+    content: counter(how, decimal-leading-zero);
+    font-family: var(--mono); font-weight: 700; color: var(--slime); font-size: 14px;
+  }
+  .how h3 { font-size: 22px; margin: 10px 0 6px; letter-spacing: -.02em; }
+  .how p { margin: 0; color: var(--ink-2); font-size: 16px; }
+  .how code, .faq code, .step code { font-family: var(--mono); font-size: .86em; background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+
+  /* ------------------------------------------------------------------ install */
+  .install-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(28px, 5vw, 64px); margin-top: 40px; align-items: start; }
+  @media (max-width: 900px) { .install-grid { grid-template-columns: 1fr; } }
+  .req {
+    position: sticky; top: 92px;
+    background: var(--sticker); color: var(--black);
+    border: 2px solid var(--black); border-radius: 26px; box-shadow: 7px 7px 0 var(--slime);
+    padding: 26px;
+  }
+  @media (max-width: 900px) { .req { position: static; } }
+  .req h3 { margin: 0 0 12px; font-size: 24px; letter-spacing: -.02em; }
+  .req dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 15.5px; }
+  .req dt { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; opacity: .6; padding-top: 3px; }
+  .req dd { margin: 0; font-weight: 600; }
+  .req .btn { width: 100%; justify-content: center; margin-top: 22px; }
+  .req .no { margin-top: 16px; font-size: 14px; opacity: .75; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 12px; }
+  .step {
+    counter-increment: step;
+    position: relative;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 22px 22px 22px 76px;
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute; left: 20px; top: 20px;
+    width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 18px; color: var(--black);
+    background: var(--slime); border: 2px solid var(--black); box-shadow: 3px 3px 0 var(--black);
+  }
+  .step.opt::before { background: var(--cyan); }
+  .step h3 { margin: 4px 0 6px; font-size: 20px; letter-spacing: -.02em; line-height: 1.25; }
+  .step h3 em { font-style: normal; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--black); background: var(--cyan); padding: 2px 7px; border-radius: 6px; vertical-align: 3px; margin-left: 6px; }
+  .step p { margin: 0; color: var(--ink-2); font-size: 16px; }
+  .step p + p { margin-top: 8px; }
+  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+  .path span { font-size: 14px; font-weight: 700; background: var(--card-2); border: 1px solid var(--line); padding: 4px 10px; border-radius: 8px; }
+  .path i { font-style: normal; color: var(--muted); }
+  .why { margin-top: 14px; font-size: 14.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 12px; }
+  @media (max-width: 480px) { .step { padding: 70px 18px 20px; } .step::before { left: 18px; top: 18px; } }
+
+  details.brands { margin-top: 12px; }
+  details.brands summary { cursor: pointer; font-weight: 700; font-size: 15px; color: var(--slime); list-style: none; }
+  details.brands summary::-webkit-details-marker { display: none; }
+  details.brands summary::before { content: "+ "; font-family: var(--mono); }
+  details.brands[open] summary::before { content: "– "; }
+  details.brands ul { margin: 10px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 15px; }
+  details.brands li + li { margin-top: 6px; }
+
+  /* ------------------------------------------------------------------ privacy */
+  .privacy { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 40px; }
+  @media (max-width: 760px) { .privacy { grid-template-columns: 1fr; } }
+  .plist { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 26px; }
+  .plist h3 { margin: 0 0 14px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+  .plist ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .plist li { display: flex; gap: 10px; color: var(--ink-2); font-size: 16px; }
+  .plist li::before { content: "✓"; color: var(--slime); font-weight: 800; flex: none; }
+  .plist.never li::before { content: "✕"; color: var(--pink); }
+
+  /* ------------------------------------------------------------------ faq */
+  .faq { margin-top: 36px; display: grid; gap: 10px; max-width: 860px; }
+  .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 0 22px; transition: border-color .15s; }
+  .faq details[open] { border-color: #3d3450; }
+  .faq summary { cursor: pointer; list-style: none; padding: 20px 36px 20px 0; font-weight: 700; font-size: 18px; letter-spacing: -.01em; position: relative; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 22px; color: var(--slime); transition: transform .2s; }
+  .faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+  .faq details > div { padding: 0 0 20px; color: var(--ink-2); font-size: 16px; }
+  .faq details > div p { margin: 0; }
+  .faq details > div p + p { margin-top: 10px; }
+
+  /* ------------------------------------------------------------------ final cta + footer */
+  .final {
+    margin-top: clamp(80px, 10vw, 130px);
+    text-align: center;
+    background: var(--slime); color: var(--black);
+    border: 2px solid var(--black); border-radius: 36px; box-shadow: 10px 10px 0 var(--pink);
+    padding: clamp(40px, 7vw, 80px) 24px;
+    position: relative; overflow: hidden;
+  }
+  .final h2 { color: var(--black); margin: 0 auto 12px; max-width: 14ch; }
+  .final p { margin: 0 auto 28px; max-width: 46ch; font-size: 18px; font-weight: 500; }
+  .final .btn { --bg-btn: var(--black); color: var(--slime); border-color: var(--black); box-shadow: 5px 5px 0 var(--pink); }
+  .final img.peek { position: absolute; width: 150px; opacity: .95; }
+  .final img.peek.l { left: -30px; bottom: -30px; transform: rotate(18deg); }
+  .final img.peek.r { right: -24px; top: -26px; transform: rotate(-160deg); }
+  @media (max-width: 600px) { .final img.peek { width: 96px; } }
+
+  footer { padding: 56px 0 120px; color: var(--muted); font-size: 14.5px; }
+  footer .wrap { display: grid; gap: 18px; }
+  .hash { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .hash code { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); background: var(--card); border: 1px solid var(--line); padding: 6px 10px; border-radius: 8px; word-break: break-all; }
+  .hash button { font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  footer .row { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+  footer a { color: var(--ink-2); }
+
+  /* ------------------------------------------------------------------ page brain (counts your scrolling) */
+  .page-brain {
+    position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 60;
+    width: 84px; height: 92px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,.6));
+    transition: opacity .3s, transform .3s;
+  }
+  .page-brain.hidden { opacity: 0; transform: translateY(20px) scale(.8); pointer-events: none; }
+  .page-brain .b { position: absolute; left: 0; top: 0; width: 84px; animation: breathe 2.6s ease-in-out infinite; transform-origin: 50% 80%; }
+  .page-brain.squish .b { animation: squish .38s cubic-bezier(.3,1.7,.5,1); }
+  .page-brain .n {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    font-family: var(--mono); font-weight: 700; font-size: 13px;
+    background: var(--black); color: var(--ink); border: 2px solid var(--slime);
+    padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .page-brain .tip {
+    position: absolute; right: 92px; bottom: 26px;
+    background: var(--sticker); color: var(--black);
+    font-weight: 700; font-size: 13px; line-height: 1.25;
+    padding: 8px 11px; border-radius: 12px; border: 2px solid var(--black);
+    width: max-content; max-width: 190px; text-align: left;
+    opacity: 0; transform: translateX(8px); transition: opacity .25s, transform .25s; pointer-events: none;
+  }
+  .page-brain.talk .tip { opacity: 1; transform: none; }
+  .page-brain .fall { position: absolute; left: 38px; top: 50px; width: 12px; animation: fall .9s ease-in forwards; pointer-events: none; }
+  @keyframes breathe { 50% { transform: scale(1.04, .97); } }
+  @keyframes squish { 0% { transform: scale(1); } 35% { transform: scale(1.18, .82); } 70% { transform: scale(.94, 1.06); } 100% { transform: scale(1); } }
+  @keyframes fall { from { transform: translateY(0); opacity: 1; } to { transform: translateY(90px); opacity: 0; } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-5px) rotate(-4deg); } 40% { transform: translateX(5px) rotate(4deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+  .page-brain.shake .b { animation: shake .5s; }
+
+  .js .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+  .js .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .js .reveal { opacity: 1; transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="logo" href="#top"><img src="assets/brain-0.png" alt="" width="46" height="38">brainrot</a>
+    <div class="nav-links">
+      <a href="#rot">The rot</a>
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="btn" href="brainrot.apk" download data-dl>Download</a>
+  </div>
+</nav>
+
+<main id="top">
+  <!-- ================================================================ hero -->
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Watch your brain <span class="drip">rot</span>, one reel at a time.</h1>
+        <p class="lede">Brainrot counts every Instagram Reel you swipe through, right on your phone. A little brain floats on top of Reels and gets grosser with every one. The number is honest enough to be annoying, and that's the point.</p>
+        <div class="cta">
+          <a class="btn" href="brainrot.apk" download data-dl>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+            Download APK <small>25.7 MB</small>
+          </a>
+          <a class="btn btn-ghost" href="#install">How to install →</a>
+        </div>
+        <ul class="chips">
+          <li>No internet permission</li>
+          <li>No account</li>
+          <li>No ads</li>
+          <li>Open source</li>
+        </ul>
+        <div class="desktop-note" id="desktopNote">
+          <div class="qr" id="qr" aria-label="QR code linking to this page"></div>
+          <p><strong>You're on a computer.</strong> Brainrot is an Android app. Scan this with your phone to open the page there and download it.</p>
+        </div>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <div class="phone">
+          <div class="screen"><div class="notch"></div><img src="assets/app-today.jpg" alt="" width="540" height="1085"></div>
+        </div>
+        <div class="float-brain">
+          <img src="assets/brain-2.png" alt="" width="213" height="179">
+          <span class="bubble">35 today</span>
+        </div>
+        <span class="sticker s1">touch<br>grass?</span>
+        <span class="sticker s2">● tracking</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ marquee -->
+  <div class="marquee" aria-hidden="true">
+    <div class="tilt a"><div class="band a" id="bandA"></div></div>
+    <div class="tilt b"><div class="band b" id="bandB"></div></div>
+  </div>
+
+  <!-- ================================================================ rot scale -->
+  <section id="rot">
+    <div class="wrap">
+      <span class="kicker reveal">The rot scale</span>
+      <h2 class="reveal">Seven stages of <span class="drip">decay</span>.</h2>
+      <p class="lede reveal">Your brain starts every day fresh and pink. Every reel pushes it further. Drag the slider to see where you'd be.</p>
+
+      <div class="rot">
+        <div class="rot-viewer reveal" id="rotViewer">
+          <div class="rot-brain" id="rotBrain"><img id="rotImg" src="assets/brain-0.png" alt="Fresh brain" width="213" height="179"></div>
+          <div class="rot-count" id="rotCount">0</div>
+          <div class="rot-label" id="rotLabel">Fresh</div>
+          <div class="rot-next" id="rotNext">10 more until it gets worse</div>
+          <div class="slider">
+            <label for="rotRange">REELS TODAY</label>
+            <input type="range" id="rotRange" min="0" max="300" value="0" step="1">
+          </div>
+        </div>
+
+        <div class="rot-copy">
+          <ul class="stages reveal" id="stages"></ul>
+          <p class="reveal" style="margin-top:22px">The count resets at local midnight, so every day starts with a clean brain. The floating brain, the widget and the app all use the same thresholds, so they always agree.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ features -->
+  <section id="features">
+    <div class="wrap">
+      <span class="kicker reveal">What you get</span>
+      <h2 class="reveal">Small app. <span class="drip">Loud</span> brain.</h2>
+
+      <div class="bento">
+        <article class="tile w4 hot reveal">
+          <div class="overlay-demo" aria-hidden="true">
+            <img src="assets/brain-4.png" alt="" width="213" height="179">
+            <img class="drop" src="assets/fx-drop-green.png" alt="">
+          </div>
+          <div class="txt">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="15" cy="7" r="2.2" fill="currentColor"/></svg></div>
+            <h3>A brain that lives on top of Reels</h3>
+            <p>It appears when you open Reels and leaves when you do. You can't miss it, and it never gets in the way.</p>
+            <ul>
+              <li>Squishes and drips with every reel. Blue sweat at first, green slime from stage 4.</li>
+              <li>Lightning, a shockwave and a shake when it reaches a new stage. It smokes at the end.</li>
+              <li>Drag it anywhere. It snaps to the edge and remembers the spot.</li>
+              <li>It's only as big as the brain, so your swipes always go straight to Instagram.</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="tile reveal">
+          <div class="ico" style="--c: var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></div>
+          <h3>Home-screen widget</h3>
+          <p>Today's count and your brain's stage, where you'll see it every time you unlock.</p>
+          <div class="widget-demo" aria-hidden="true">
+            <img src="assets/brain-3.png" alt="" width="213" height="179">
+            <div><b>58</b><small>reels today · Fried</small></div>
+          </div>
+        </article>
+
+        <article class="tile w3 reveal">
+          <div class="ico" style="--c: var(--pink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+          <h3>Your day, laid out</h3>
+          <p>One screen with the live clock, today's count, time spent in Reels, how many sittings, seconds per reel, and a chart of reels by hour.</p>
+          <div class="mini-bars" aria-hidden="true" id="miniBars"></div>
+        </article>
+
+        <article class="tile w3 reveal">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Counts honestly</h3>
+          <p>Built so the number never goes up by mistake. When it can't be sure, it doesn't count.</p>
+          <ul>
+            <li>A half-swipe you let bounce back doesn't count.</li>
+            <li>Swiping back to a reel you've seen doesn't count it twice.</li>
+            <li>Ads in Reels count. They took your attention too.</li>
+          </ul>
+        </article>
+
+        <article class="tile w3 reveal">
+          <div class="ico" style="--c: var(--sticker)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+          <h3>Stays on your phone</h3>
+          <p>The app has no internet permission, so it can't send anything anywhere. No account, no analytics. Your history lives in a small database on your phone.</p>
+        </article>
+
+        <article class="tile w3 reveal">
+          <div class="ico" style="--c: #ffb13b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+          <h3>Light on battery</h3>
+          <p>It listens for three things only: a list scrolled, a screen changed, a tab was tapped. It never reads or scans your screen.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ how it works -->
+  <section id="how">
+    <div class="wrap">
+      <span class="kicker reveal">Under the hood</span>
+      <h2 class="reveal">How it counts.</h2>
+      <p class="lede reveal">Android lets accessibility apps see basic events, such as "this list scrolled to item 17". Brainrot uses exactly that and nothing more.</p>
+      <ol class="how" style="padding:0">
+        <li class="reveal"><h3>Spots Reels</h3><p>It knows you're in Reels when the Reels tab is tapped or the Reels pager moves. Leave Reels, switch tabs or close Instagram, and it stops.</p></li>
+        <li class="reveal"><h3>Counts new reels</h3><p>When the pager lands on a reel number it hasn't seen yet, that's +1. Instagram reports the position itself, so the count is exact.</p></li>
+        <li class="reveal"><h3>Saves every one</h3><p>Each reel is saved with its time, so today's total, your sittings and the hourly chart are always worked out from real events.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================================================================ install -->
+  <section id="install">
+    <div class="wrap">
+      <span class="kicker reveal">Install</span>
+      <h2 class="reveal">Set it up in <span class="drip">3 minutes</span>.</h2>
+      <p class="lede reveal">Brainrot isn't on the Play Store, so you install it from this page. Android will ask a few scary-sounding questions along the way. Here's what each one means.</p>
+
+      <div class="install-grid">
+        <aside class="req reveal">
+          <h3>Before you start</h3>
+          <dl>
+            <dt>Phone</dt><dd>Android 10 or newer</dd>
+            <dt>Needs</dt><dd>The Instagram app</dd>
+            <dt>Size</dt><dd>25.7 MB</dd>
+            <dt>Version</dt><dd>1.0</dd>
+            <dt>Tested</dt><dd>OnePlus · Android 15 · Instagram 447</dd>
+          </dl>
+          <a class="btn" href="brainrot.apk" download data-dl>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+            Download APK
+          </a>
+          <p class="no">No iPhone version. iOS doesn't let apps see what other apps are doing.</p>
+        </aside>
+
+        <ol class="steps">
+          <li class="step reveal">
+            <h3>Download the APK on your phone</h3>
+            <p>Tap <b>Download APK</b>. If Chrome warns that <i>"this type of file can harm your device"</i>, tap <b>Download anyway</b>. It says that about every app that doesn't come from the Play Store.</p>
+          </li>
+
+          <li class="step reveal">
+            <h3>Open it and allow the install</h3>
+            <p>Open <b>brainrot.apk</b> from your notifications or the Downloads folder. The first time, Android asks you to allow installs from your browser:</p>
+            <div class="path"><span>Settings</span><i>→</i><span>Allow from this source</span><i>→</i><span>back</span><i>→</i><span>Install</span></div>
+          </li>
+
+          <li class="step reveal">
+            <h3>If Play Protect complains, install anyway</h3>
+            <p>You might see <i>"Unsafe app blocked"</i> or <i>"Unrecognized developer"</i>. Tap <b>More details</b>, then <b>Install anyway</b>.</p>
+            <p class="why">Why: the app isn't from the Play Store and uses the Accessibility API, and Play Protect flags that combination. The app has no internet permission, so it has no way to send anything off your phone.</p>
+          </li>
+
+          <li class="step opt reveal">
+            <h3>Allow restricted settings <em>Android 13+</em></h3>
+            <p>Newer Android versions grey out Accessibility for apps installed from a file. If Brainrot is greyed out in the next step, unlock it first:</p>
+            <div class="path"><span>Settings</span><i>→</i><span>Apps</span><i>→</i><span>Brainrot</span><i>→</i><span>⋮ top-right</span><i>→</i><span>Allow restricted settings</span></div>
+            <p class="why">Can't see the ⋮ menu? Try turning Brainrot on in Accessibility once. Once you've been blocked, the option appears.</p>
+          </li>
+
+          <li class="step reveal">
+            <h3>Turn on the Brainrot service</h3>
+            <p>Open Brainrot and tap the red <b>Off</b> pill at the top. It takes you straight to Accessibility.</p>
+            <div class="path"><span>Installed apps</span><i>or</i><span>Downloaded apps</span><i>→</i><span>Brainrot</span><i>→</i><span>On</span><i>→</i><span>Allow</span></div>
+            <p class="why">The warning says the app can "view and control screen". That's the standard wording for every accessibility app. Brainrot only reads which list scrolled and its position, never text.</p>
+          </li>
+
+          <li class="step reveal">
+            <h3>Let it run in the background</h3>
+            <p>Otherwise your phone's battery saver will quietly stop it, and the app will say <b>Not running</b>.</p>
+            <div class="path"><span>Settings</span><i>→</i><span>Apps</span><i>→</i><span>Brainrot</span><i>→</i><span>Battery</span><i>→</i><span>Unrestricted</span></div>
+            <details class="brands">
+              <summary>Samsung, Xiaomi, OnePlus and others</summary>
+              <ul>
+                <li><b>Samsung:</b> App info → Battery → <b>Unrestricted</b>. Also check it isn't under Settings → Battery → Background usage limits → Sleeping apps.</li>
+                <li><b>Xiaomi / Redmi / POCO:</b> App info → Battery saver → <b>No restrictions</b>, and turn on <b>Autostart</b>.</li>
+                <li><b>OnePlus / OPPO / realme:</b> App info → Battery usage → allow <b>background activity</b>.</li>
+                <li><b>Anything else:</b> look for "battery optimisation" and set Brainrot to <b>Don't optimise</b>. <a href="https://dontkillmyapp.com" target="_blank" rel="noopener">dontkillmyapp.com</a> has steps for every brand.</li>
+              </ul>
+            </details>
+          </li>
+
+          <li class="step reveal">
+            <h3>Open Reels and scroll</h3>
+            <p>Go to Instagram, tap Reels and swipe. The brain pops up in the top-right corner and starts counting. Back in Brainrot, the pill should be green and say <b>Tracking</b>.</p>
+            <p>Optional: tap <b>Add to home screen</b> under the count for the widget.</p>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ privacy -->
+  <section id="privacy">
+    <div class="wrap">
+      <span class="kicker reveal">Privacy</span>
+      <h2 class="reveal">It watches the scroll bar, not you.</h2>
+      <div class="privacy">
+        <div class="plist reveal">
+          <h3>What it reads</h3>
+          <ul>
+            <li>Which app is on screen, so it knows when you leave Instagram</li>
+            <li>The internal name of the list that scrolled, such as the Reels pager</li>
+            <li>The position number Android attaches to that scroll</li>
+            <li>Which Instagram tab you tapped</li>
+          </ul>
+        </div>
+        <div class="plist never reveal">
+          <h3>What it never touches</h3>
+          <ul>
+            <li>Captions, comments, usernames or messages</li>
+            <li>Screenshots, recordings, or anything you type</li>
+            <li>The internet. There's no permission for it.</li>
+            <li>Your Instagram account. You never log in to anything.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ faq -->
+  <section id="faq">
+    <div class="wrap">
+      <span class="kicker reveal">FAQ</span>
+      <h2 class="reveal">Questions, answered.</h2>
+      <div class="faq">
+        <details class="reveal"><summary>Why does it need Accessibility?</summary><div>
+          <p>Accessibility is the only way an Android app can tell that another app scrolled. Brainrot subscribes to three event types (scrolled, window changed, tab selected), reads the list's name and position, and ignores everything else.</p>
+        </div></details>
+        <details class="reveal"><summary>Why isn't it on the Play Store?</summary><div>
+          <p>Google Play only allows the Accessibility API for a narrow set of uses, and a Reels counter isn't one of them. So Brainrot is shared as an APK you install yourself.</p>
+        </div></details>
+        <details class="reveal"><summary>The count stopped going up. What happened?</summary><div>
+          <p>Most likely, Android stopped the service to save battery. Open Brainrot: if the pill says <b>Not running</b>, turn the service off and on again in Accessibility, and set battery to Unrestricted (step 6).</p>
+          <p>If the pill says <b>Tracking</b> and it still doesn't count, an Instagram update probably renamed something Brainrot looks for. Tap <b>Export debug capture</b> at the bottom of the app and open an issue on <a href="https://github.com/ayush78490/brainRot/issues" target="_blank" rel="noopener">GitHub</a> with the file. It contains no captions, names or messages.</p>
+        </div></details>
+        <details class="reveal"><summary>Does it work on every phone?</summary><div>
+          <p>It's been verified on a OnePlus phone running Android 15 with Instagram 447. Other Android 10+ phones should work the same way, but they haven't all been tested. If yours doesn't count, the debug export helps fix it.</p>
+        </div></details>
+        <details class="reveal"><summary>Does it count the reel I land on when I open Reels?</summary><div>
+          <p>No, it counts swipes. Open Reels and swipe 17 times, and you get 17.</p>
+        </div></details>
+        <details class="reveal"><summary>Does it slow my phone down or drain the battery?</summary><div>
+          <p>It shouldn't. It never reads your screen or scans the view tree, and events from other apps are dropped straight away. The busiest thing it does is save one small database row per reel.</p>
+        </div></details>
+        <details class="reveal"><summary>How do I uninstall it?</summary><div>
+          <p>Like any app: long-press the icon and tap <b>Uninstall</b>. The service and all its data go with it.</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ final cta -->
+  <div class="wrap">
+    <div class="final reveal">
+      <img class="peek l" src="assets/brain-6.png" alt="" aria-hidden="true">
+      <img class="peek r" src="assets/brain-5.png" alt="" aria-hidden="true">
+      <h2>How rotten is your brain today?</h2>
+      <p>You probably don't want to know. Download it anyway.</p>
+      <a class="btn" href="brainrot.apk" download data-dl>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+        Download Brainrot
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="hash">
+      <span>SHA-256 of brainrot.apk</span>
+      <code id="sha">5e39e06c1be2d886e410fbfc3bf0a84224a6fd28c8408631cd34ba613113ddc9</code>
+      <button type="button" id="copySha">Copy</button>
+    </div>
+    <div class="row">
+      <a href="https://github.com/ayush78490/brainRot" target="_blank" rel="noopener">Source on GitHub</a>
+      <span>v1.0 · Android 10+</span>
+      <span>Not affiliated with Instagram or Meta.</span>
+    </div>
+    <div>Made with 🧠 and far too many reels.</div>
+  </div>
+</footer>
+
+<!-- The page counts your scrolling too. -->
+<button class="page-brain hidden" id="pageBrain" type="button" aria-label="Page scroll counter">
+  <img class="b" id="pbImg" src="assets/brain-0.png" alt="" width="213" height="179">
+  <span class="n" id="pbN">0</span>
+  <span class="tip" id="pbTip">this page counts too 👀</span>
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" defer></script>
+<script>
+(() => {
+  const STAGES = [
+    { at: 0,   name: "Fresh",     glow: "rgba(255,130,160,.28)" },
+    { at: 10,  name: "Bruised",   glow: "rgba(255,120,140,.26)" },
+    { at: 25,  name: "Foggy",     glow: "rgba(220,150,120,.24)" },
+    { at: 50,  name: "Fried",     glow: "rgba(230,170,70,.24)" },
+    { at: 100, name: "Mushy",     glow: "rgba(160,190,60,.24)" },
+    { at: 175, name: "Rotting",   glow: "rgba(120,170,40,.26)" },
+    { at: 250, name: "Brain rot", glow: "rgba(110,200,30,.32)" },
+  ];
+  const stageOf = n => STAGES.reduce((s, x, i) => (n >= x.at ? i : s), 0);
+  const brain = i => `assets/brain-${i}.png`;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Preload sprites so stage swaps never flash.
+  STAGES.forEach((_, i) => { const im = new Image(); im.src = brain(i); });
+
+  // ---------------------------------------------------------------- marquee
+  const fill = (el, words) => {
+    const run = words.map(w => `<span>${w}</span><i>✦</i>`).join("");
+    el.innerHTML = run + run + run + run;
+  };
+  fill(document.getElementById("bandA"), ["doomscroll detected", "one more reel", "brain status: mushy", "touch grass", "247 reels today", "it's giving rot", "no cap"]);
+  fill(document.getElementById("bandB"), ["it's 3am", "just one more", "stage 6 unlocked", "your thumb is tired", "brainrot certified", "go outside", "blink twice"]);
+
+  // ---------------------------------------------------------------- rot scale
+  const range = document.getElementById("rotRange");
+  const rotImg = document.getElementById("rotImg");
+  const rotBrain = document.getElementById("rotBrain");
+  const rotCount = document.getElementById("rotCount");
+  const rotLabel = document.getElementById("rotLabel");
+  const rotNext = document.getElementById("rotNext");
+  const viewer = document.getElementById("rotViewer");
+  const list = document.getElementById("stages");
+
+  list.innerHTML = STAGES.map((s, i) => `
+    <li><button type="button" data-i="${i}" aria-pressed="${i === 0}">
+      <img src="${brain(i)}" alt="" width="213" height="179" loading="lazy">
+      <b>${s.name}</b><span>${i === STAGES.length - 1 ? s.at + "+" : s.at} reels</span>
+    </button></li>`).join("");
+
+  let shown = -1;
+  const setRot = n => {
+    const i = stageOf(n);
+    rotCount.textContent = n + (n >= 300 ? "+" : "");
+    rotLabel.textContent = STAGES[i].name;
+    const next = STAGES[i + 1];
+    rotNext.textContent = next ? `${next.at - n} more until it gets worse` : "It doesn't get worse than this.";
+    viewer.style.setProperty("--glow", STAGES[i].glow);
+    if (i !== shown) {
+      rotImg.src = brain(i);
+      rotImg.alt = STAGES[i].name + " brain";
+      list.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+      if (shown !== -1 && !reduced) {
+        rotBrain.classList.remove("pop"); void rotBrain.offsetWidth; rotBrain.classList.add("pop");
+        setTimeout(() => rotBrain.classList.remove("pop"), 350);
+      }
+      shown = i;
+    }
+  };
+  range.addEventListener("input", () => setRot(+range.value));
+  list.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    range.value = STAGES[+b.dataset.i].at; setRot(+range.value);
+  });
+  setRot(0);
+
+  // ---------------------------------------------------------------- mini hourly bars (illustrative)
+  const bars = [0,0,0,0,0,0,0,2,5,3,1,2,6,4,2,1,3,5,9,14,22,17,10,4];
+  const max = Math.max(...bars);
+  document.getElementById("miniBars").innerHTML = bars.map(v => `<i style="height:${Math.max(v / max * 100, 3)}%;opacity:${v ? .9 : .15}"></i>`).join("");
+
+  // ---------------------------------------------------------------- desktop: QR to open on phone
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isMobile = isAndroid || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!isMobile) {
+    const note = document.getElementById("desktopNote");
+    note.classList.add("show");
+    window.addEventListener("load", () => {
+      if (typeof qrcode !== "function") { document.getElementById("qr").remove(); return; }
+      const qr = qrcode(0, "M");
+      qr.addData(location.href.split("#")[0]);
+      qr.make();
+      document.getElementById("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    });
+  }
+
+  // ---------------------------------------------------------------- reveal on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, { rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+  // ---------------------------------------------------------------- the page brain: every screen you scroll is a "reel"
+  const pb = document.getElementById("pageBrain");
+  const pbImg = document.getElementById("pbImg");
+  const pbN = document.getElementById("pbN");
+  const PAGE_STAGES = [0, 2, 4, 6, 8, 10, 12];
+  let seen = 0, pbStage = 0, talked = false;
+  const pageStage = n => PAGE_STAGES.reduce((s, at, i) => (n >= at ? i : s), 0);
+
+  const tick = () => {
+    const vh = window.innerHeight;
+    const n = Math.floor(window.scrollY / (vh * 0.85));
+    pb.classList.toggle("hidden", window.scrollY < vh * 0.5);
+    if (n <= seen) return;
+    seen = n;
+    pbN.textContent = seen;
+    if (!talked && seen >= 1) {
+      talked = true; pb.classList.add("talk"); setTimeout(() => pb.classList.remove("talk"), 3200);
+    }
+    if (reduced) { pbImg.src = brain(pageStage(seen)); return; }
+    const s = pageStage(seen);
+    if (s !== pbStage) {
+      pbStage = s; pbImg.src = brain(s);
+      pb.classList.remove("shake"); void pb.offsetWidth; pb.classList.add("shake");
+    } else {
+      pb.classList.remove("squish"); void pb.offsetWidth; pb.classList.add("squish");
+    }
+    const drop = document.createElement("img");
+    drop.className = "fall"; drop.alt = "";
+    drop.src = s >= 4 ? "assets/fx-drop-green.png" : "assets/fx-drop-blue.png";
+    pb.appendChild(drop);
+    setTimeout(() => drop.remove(), 950);
+  };
+  let raf = 0;
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; tick(); }); };
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
+  pb.addEventListener("click", () => {
+    pb.querySelector(".tip").textContent = seen
+      ? `you've scrolled ${seen} screen${seen === 1 ? "" : "s"}. imagine reels.`
+      : "this page counts too 👀";
+    pb.classList.add("talk"); setTimeout(() => pb.classList.remove("talk"), 2600);
+    if (!reduced) { pb.classList.remove("shake"); void pb.offsetWidth; pb.classList.add("shake"); }
+  });
+  tick();
+
+  // ---------------------------------------------------------------- copy checksum
+  document.getElementById("copySha").addEventListener("click", async e => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById("sha").textContent.trim());
+      e.target.textContent = "Copied";
+    } catch { e.target.textContent = "Select it manually"; }
+    setTimeout(() => (e.target.textContent = "Copy"), 1800);
+  });
+})();
+</script>
+</body>
+</html>
