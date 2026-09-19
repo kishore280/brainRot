@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Deliberately broader than the production config in design section 12. The spike's job is
+  to see everything once, so it uses typeAllMask, no notificationTimeout coalescing, and
+  flagIncludeNotImportantViews. None of that carries forward to M1.
+
+  flagReportViewIds DOES carry forward: without it viewIdResourceName is always null,
+  which would blind both ReelsContext and Tier B's "known pager source" check.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/service_description"
+    android:notificationTimeout="0"
+    android:packageNames="com.instagram.android" />

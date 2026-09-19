@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The rotting brain on a dark ground with a sickly glow. Layers are 432px nodpi PNGs (108dp at
+  xxxhdpi); the brain sits inside the 66dp safe circle. Monochrome is its silhouette, for themed
+  icons on Android 13+.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_bg" />
+    <foreground android:drawable="@drawable/ic_launcher_brain" />
+    <monochrome android:drawable="@drawable/ic_launcher_brain_mono" />
+</adaptive-icon>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="service_description">M0 spike. Logs accessibility event metadata from Instagram to a local file. No text content, no network.</string>
+</resources>
