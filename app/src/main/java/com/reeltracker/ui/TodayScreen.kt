@@ -357,11 +357,34 @@ private fun SittingRow(s: Sitting, maxReels: Int, live: Boolean, clock: Clock) {
 private fun SiteCard(site: Site, onSave: (String, String) -> Unit) {
     val p = LocalPalette.current
     val focus = LocalFocusManager.current
-    var address by remember(site.url) { mutableStateOf(site.url) }
-    var secret by remember(site.token) { mutableStateOf(site.token) }
-    // Saved when the fields match what is stored, so it is plain to see after a save.
-    val saved = address.trim() == site.url && secret.trim() == site.token
+    // A saved site shows as text with Edit; editing shows the fields with Save and Cancel.
+    var editing by remember { mutableStateOf(site.token.isEmpty()) }
+    var address by remember(site.url, editing) { mutableStateOf(site.url) }
+    var secret by remember(site.token, editing) { mutableStateOf(site.token) }
     Panel("Your site", subtitle = "Shows \"now scrolling\" there. Only the count and times are sent.") {
+        if (!editing) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(if (site.enabled) p.good else p.textMuted))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (site.enabled) "On" else "Off: needs an https:// address and a token",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = p.textPrimary,
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(site.url, style = MaterialTheme.typography.bodyMedium, color = p.textSecondary)
+            Text(
+                if (site.token.isEmpty()) "No token" else "Token ••••${site.token.takeLast(4)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = p.textSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = { editing = true }, contentPadding = PaddingValues(0.dp)) {
+                Text("Edit", color = p.accent, style = MaterialTheme.typography.labelLarge)
+            }
+            return@Panel
+        }
         OutlinedTextField(
             value = address,
             onValueChange = { address = it },
@@ -379,24 +402,23 @@ private fun SiteCard(site: Site, onSave: (String, String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(14.dp))
-        Button(
-            onClick = {
-                focus.clearFocus()
-                onSave(address, secret)
-            },
-            enabled = !saved,
-            colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = Color.White),
-        ) { Text(if (saved) "Saved ✓" else "Save") }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            when {
-                !saved -> "Not saved yet."
-                site.enabled -> "On: your site shows when you scroll Reels."
-                else -> "Off: needs an https:// address and a token."
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (saved && site.enabled) p.good else p.textMuted,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                onClick = {
+                    focus.clearFocus()
+                    onSave(address, secret)
+                    editing = false
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = Color.White),
+            ) { Text("Save") }
+            if (site.token.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = {
+                    focus.clearFocus()
+                    editing = false
+                }) { Text("Cancel", color = p.textSecondary) }
+            }
+        }
     }
 }
 
