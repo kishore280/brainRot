@@ -14,6 +14,7 @@ import com.reeltracker.data.ReelRepository
 import com.reeltracker.detect.Detector
 import com.reeltracker.detect.RawEvent
 import com.reeltracker.detect.SignalMapper
+import com.reeltracker.model.DayStats
 import com.reeltracker.model.Decision
 import com.reeltracker.model.ScrollSession
 import com.reeltracker.model.UiSignal
@@ -41,9 +42,9 @@ class ReelAccessibilityService : AccessibilityService() {
     /** The open Reels session, shared by the site and the notification. */
     private val session = ScrollSession()
 
-    /** Today's count, for the brain's stage in the notification. */
+    /** Today so far: the count (the brain's stage), time in Reels and time per reel, for the site. */
     @Volatile
-    private var today = 0
+    private var stats = DayStats.EMPTY
 
     /** The app's "Export debug capture": the signals are here, in this process. */
     private val export = object : BroadcastReceiver() {
@@ -70,18 +71,16 @@ class ReelAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         repo = ReelGraph.repository(this)
-        site = SiteReporter(SiteSettings.get(this), scope, session) { today }
+        site = SiteReporter(SiteSettings.get(this), scope, session) { stats }
         notifier = BrainNotifier(this)
         detector.reset()
         listen(screenOff, Intent.ACTION_SCREEN_OFF)
         listen(export, CaptureExport.ACTION)
         scope.launch(Dispatchers.IO) { applyWrites() }
+        scope.launch(Dispatchers.IO) { repo.todayStats.collect { stats = it } }
         // Home-screen widget follows the count live, including the reset at midnight.
         scope.launch(Dispatchers.IO) {
-            repo.todayCount.distinctUntilChanged().collect {
-                today = it
-                ReelWidgetProvider.update(this@ReelAccessibilityService, it)
-            }
+            repo.todayCount.distinctUntilChanged().collect { ReelWidgetProvider.update(this@ReelAccessibilityService, it) }
         }
     }
 
@@ -124,7 +123,7 @@ class ReelAccessibilityService : AccessibilityService() {
             val report = session.onDecision(d, System.currentTimeMillis())
             report?.let(site::send)
             // While in Reels, the running count (a reel returns no report); after, the total.
-            (session.current() ?: report)?.let { notifier.show(it, today) }
+            (session.current() ?: report)?.let { notifier.show(it, stats.count) }
         }
     }
 

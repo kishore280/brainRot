@@ -39,7 +39,7 @@ class TodayViewModel(private val app: Application) : AndroidViewModel(app) {
     /** The site for "now scrolling"; null until read. */
     val site: StateFlow<Site?> = siteSettings.data.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    fun saveSite(url: String, token: String, saved: (Site) -> Unit) {
-        viewModelScope.launch { saved(siteSettings.updateData { Site(url.trim(), token.trim()) }) }
+    fun saveSite(url: String, token: String) {
+        viewModelScope.launch { siteSettings.updateData { Site(url.trim(), token.trim()) } }
     }
 }

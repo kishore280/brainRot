@@ -1,5 +1,6 @@
 package com.reeltracker.service
 
+import com.reeltracker.model.DayStats
 import com.reeltracker.model.ScrollReport
 import com.reeltracker.model.ScrollSession
 import kotlinx.coroutines.CoroutineScope
@@ -25,8 +26,8 @@ class SiteReporter(
     private val settings: SiteSettings,
     private val scope: CoroutineScope,
     private val session: ScrollSession,
-    /** Today's count so far (the app's big number), read when a report goes out. */
-    private val today: () -> Int,
+    /** Today so far (the app's Today screen), read when a report goes out. */
+    private val today: () -> DayStats,
 ) {
     private val outbox = Channel<ScrollReport>(Channel.UNLIMITED)
     private var beat: Job? = null
@@ -63,11 +64,14 @@ class SiteReporter(
     }
 
     private fun post(site: Site, r: ScrollReport): Boolean = runCatching {
+        val day = today()
         val body = JSONObject()
             .put("app", "instagram")
             .put("scrolling", r.scrolling)
             .put("reels", r.reels)
-            .put("today", today())
+            .put("today", day.count)
+            .put("minutes", day.scrollingMs / 60_000)
+            .put("perReel", day.secondsPerReel ?: JSONObject.NULL)
             .put("started", r.started)
             .put("ended", r.ended ?: JSONObject.NULL)
             .toString()

@@ -72,11 +72,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onAddWidget = { requestWidget(context) },
                     site = site,
-                    onSaveSite = { url, token ->
-                        vm.saveSite(url, token) {
-                            Toast.makeText(context, if (it.enabled) "Saved. Your site will show it." else "Saved. Off until both are set.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                    onSaveSite = vm::saveSite,
                 )
             }
         }

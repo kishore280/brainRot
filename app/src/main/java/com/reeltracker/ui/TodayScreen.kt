@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -104,7 +105,7 @@ fun TodayScreen(
             }
         }
         item { Sittings(stats, now, clock) }
-        site?.let { item { SiteCard(it.url, it.token, onSaveSite) } }
+        site?.let { item { SiteCard(it, onSaveSite) } }
         item { Footer(exportMessage, onExport) }
     }
 }
@@ -353,10 +354,13 @@ private fun SittingRow(s: Sitting, maxReels: Int, live: Boolean, clock: Clock) {
 
 /** Where "now scrolling" goes: the site's /api/scroll and its token. Empty token = off. */
 @Composable
-private fun SiteCard(url: String, token: String, onSave: (String, String) -> Unit) {
+private fun SiteCard(site: Site, onSave: (String, String) -> Unit) {
     val p = LocalPalette.current
-    var address by remember(url) { mutableStateOf(url) }
-    var secret by remember(token) { mutableStateOf(token) }
+    val focus = LocalFocusManager.current
+    var address by remember(site.url) { mutableStateOf(site.url) }
+    var secret by remember(site.token) { mutableStateOf(site.token) }
+    // Saved when the fields match what is stored, so it is plain to see after a save.
+    val saved = address.trim() == site.url && secret.trim() == site.token
     Panel("Your site", subtitle = "Shows \"now scrolling\" there. Only the count and times are sent.") {
         OutlinedTextField(
             value = address,
@@ -376,9 +380,23 @@ private fun SiteCard(url: String, token: String, onSave: (String, String) -> Uni
         )
         Spacer(Modifier.height(14.dp))
         Button(
-            onClick = { onSave(address, secret) },
+            onClick = {
+                focus.clearFocus()
+                onSave(address, secret)
+            },
+            enabled = !saved,
             colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = Color.White),
-        ) { Text("Save") }
+        ) { Text(if (saved) "Saved ✓" else "Save") }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            when {
+                !saved -> "Not saved yet."
+                site.enabled -> "On: your site shows when you scroll Reels."
+                else -> "Off: needs an https:// address and a token."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (saved && site.enabled) p.good else p.textMuted,
+        )
     }
 }
 
