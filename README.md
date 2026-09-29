@@ -10,6 +10,9 @@ a little more with every one.
 - **A silent notification while you scroll.** "Brain rotting · 12 reels", with today's brain,
   then "✓ 42 reels in 18 min" when you stop. No sound, no pop-up.
 - **Now scrolling, on your site** (optional, see below).
+
+A fork of [Brainrot by ayush78490](https://github.com/ayush78490/brainRot): the reel counting and the
+brain art are theirs; this fork adds the notification, the site report and signed releases.
 - **Home-screen widget.** Today's count and the brain's current state, on your home screen.
 - **Today screen.** The count, time spent, sittings, reels per hour, and seconds per reel.
 
