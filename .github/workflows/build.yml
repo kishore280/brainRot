@@ -1,6 +1,7 @@
-# Every push: the tests and a test APK (the "brainrot-debug" artifact of the run).
-# A release: push a tag like v1.2, or Actions → build → Run workflow with a version (it makes the tag).
-# Either way: a shrunk release build (R8), signed with your key, published as a GitHub release.
+# Every push and pull request: one fast job (unit tests, lint, the shrunk release build).
+# A release: Actions → build → Run workflow with a version (e.g. v1.5; it makes the tag), or push a
+# v* tag. It builds the release, signs it with your key, checks the key's fingerprint, installs it on
+# an Android 15 emulator (tools/install-check.sh: adb install, open, service runs), and publishes it.
 # The key: Settings → Environments → "release" → secret DEBUG_KEYSTORE_BASE64 (base64 of the
 # debug.keystore that signed the app on your phone), so each release installs as an update.
 name: build
@@ -8,36 +9,26 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release this commit as (e.g. v1.2); empty = only test and build'
+        description: 'Release this commit as (e.g. v1.5); empty = only check'
         required: false
         type: string
 
-jobs:
-  build:
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew test :app:assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: brainrot-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+# A newer push replaces a running check of the same branch; releases always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/') }}
 
-  # A real install on Android 15: adb install, open the app, turn on the accessibility service,
-  # and check that the app and its ":bg" process run (reactivecircus/android-emulator-runner).
-  install:
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  check:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') && !startsWith(inputs.version, 'v') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -45,29 +36,19 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :app:assembleRelease
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          script: ./tools/install-check.sh app/build/outputs/apk/release/app-release.apk
+      - run: ./gradlew test :app:lintRelease :app:assembleRelease
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') || startsWith(inputs.version, 'v')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: release
+    permissions:
+      contents: write
     env:
       TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
       # The public fingerprint of the key that signed the app on the phone (not a secret).
       KEY_SHA256: fb68ad9ab1498f7e2f6cd7665673c4d9761e4c655934332cba3afd91caed7754
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -88,6 +69,18 @@ jobs:
           apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk | tee signer.txt
           grep -q "SHA-256 digest: $KEY_SHA256" signer.txt || { echo "::error::Signed with another key: check DEBUG_KEYSTORE_BASE64"; exit 1; }
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # A real install of exactly this APK before anyone downloads it.
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          script: ./tools/install-check.sh app/build/outputs/apk/release/app-release.apk
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -63,20 +63,20 @@ tested) and `SiteReporter` (service).
 
 ### Releases
 
-This fork's app id is `com.kishore.brainrot`, so it installs next to the original Brainrot
-(`com.reeltracker`, signed with another key) instead of failing to install over it.
-
-Every push runs the tests, builds a test APK, and installs the release build on an Android 15
-emulator with `tools/install-check.sh` (adb install, open the app, turn on the service, check that
-its `:bg` process runs). The release build is shrunk with R8 (about 2.7 MB instead of 26 MB), as
-Pano Scrobbler builds its release. The service and the widget run in their own process (`:bg`), as
-Pano's scrobbler does, and the site settings are a multi-process DataStore. A release comes from a tag
-(`git tag v1.2 && git push origin v1.2`) or from **Actions → build → Run workflow** with a version
-such as `v1.2` (the workflow makes the tag). It builds an APK signed with your key and publishes it
-as a GitHub release, so it installs over the app
-on your phone as an update. The key is the secret `DEBUG_KEYSTORE_BASE64` (the base64 of the
-`debug.keystore` that signed the installed app) in the repo's **release** environment
-(Settings → Environments → release).
+- **App id** `com.kishore.brainrot`: it installs next to the original Brainrot (`com.reeltracker`,
+  signed with another key) instead of failing to install over it.
+- **Every push:** one fast check (unit tests, lint, the release build). Docs-only pushes skip it,
+  and a newer push cancels the older check.
+- **A release:** Actions → build → **Run workflow** with a version such as `v1.5` (the workflow
+  makes the tag), or push a `v*` tag. It builds the release, signs it with your key, checks the
+  key's fingerprint, installs the exact APK on an Android 15 emulator (`tools/install-check.sh`:
+  adb install, open the app, turn on the service, check its `:bg` process runs), and publishes it
+  on the Releases page. Running a version again replaces its release.
+- **The key:** the secret `DEBUG_KEYSTORE_BASE64` (base64 of the `debug.keystore` that signed the
+  installed app) in the repo's **release** environment (Settings → Environments → release).
+- **Like Pano Scrobbler:** the release is shrunk with R8 (about 2.7 MB instead of 26 MB), the
+  service and the widget run in their own process (`:bg`), and the site settings are a
+  multi-process DataStore.
 
 ---
 
