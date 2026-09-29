@@ -20,15 +20,29 @@ android {
 
     buildFeatures { compose = true }
 
+    // The release key: the file in SIGNING_KEYSTORE (CI writes it from the DEBUG_KEYSTORE_BASE64
+    // secret), else this machine's debug key. It is a debug-type keystore, so its passwords and
+    // alias are Android's standard debug ones. A named path, because CI runners may keep the
+    // default debug keystore somewhere else and would then sign with a new key.
+    signingConfigs {
+        create("release") {
+            val debug = getByName("debug")
+            storeFile = System.getenv("SIGNING_KEYSTORE")?.let(::file) ?: debug.storeFile
+            storePassword = debug.storePassword
+            keyAlias = debug.keyAlias
+            keyPassword = debug.keyPassword
+        }
+    }
+
     // As Pano Scrobbler builds its release (androidApp/build.gradle.kts): R8 shrinks and optimises
-    // the code and drops unused resources. Signed with the debug key (~/.android/debug.keystore;
-    // CI writes it from the DEBUG_KEYSTORE_BASE64 secret), so a release installs over a debug build.
+    // the code and drops unused resources. Signed with the release key above, so it installs over
+    // a debug build made on the same machine.
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     packaging {

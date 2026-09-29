@@ -64,6 +64,8 @@ jobs:
     environment: release
     env:
       TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
+      # The public fingerprint of the key that signed the app on the phone (not a secret).
+      KEY_SHA256: fb68ad9ab1498f7e2f6cd7665673c4d9761e4c655934332cba3afd91caed7754
     permissions:
       contents: write
     steps:
@@ -78,12 +80,19 @@ jobs:
           KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE" ]; then echo "::error::Add DEBUG_KEYSTORE_BASE64 to the release environment"; exit 1; fi
-          mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "SIGNING_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
       - run: ./gradlew test :app:assembleRelease
+      - name: Check it is signed with the key of the app on the phone
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk | tee signer.txt
+          grep -q "SHA-256 digest: $KEY_SHA256" signer.txt || { echo "::error::Signed with another key: check DEBUG_KEYSTORE_BASE64"; exit 1; }
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk "brainrot-$TAG.apk"
-          # Makes the tag on this commit if it does not exist yet (the Run workflow button).
+          # Running a version again replaces its release. Makes the tag on this commit if needed.
+          gh release delete "$TAG" --cleanup-tag --yes 2>/dev/null || true
           gh release create "$TAG" "brainrot-$TAG.apk" --target "$GITHUB_SHA" --generate-notes
