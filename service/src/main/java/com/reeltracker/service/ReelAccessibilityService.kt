@@ -1,6 +1,11 @@
 package com.reeltracker.service
 
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.reeltracker.data.ReelGraph
@@ -9,6 +14,7 @@ import com.reeltracker.detect.Detector
 import com.reeltracker.detect.RawEvent
 import com.reeltracker.detect.SignalMapper
 import com.reeltracker.model.Decision
+import com.reeltracker.model.UiSignal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,6 +33,13 @@ class ReelAccessibilityService : AccessibilityService() {
     private val detector = Detector()
     private lateinit var repo: ReelRepository
     private lateinit var overlay: OverlayController
+    private lateinit var site: SiteReporter
+
+    /** The lock screen is system UI, which counts as an overlay; screen off is what ends the session. */
+    private val screenOff = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) =
+            handle(UiSignal.ScreenOff(SystemClock.elapsedRealtime()))
+    }
 
     /**
      * Decisions are applied strictly in order by one consumer. A Room call suspends, so launching
@@ -37,7 +50,11 @@ class ReelAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         repo = ReelGraph.repository(this)
         overlay = OverlayController(this, repo.todayCount, scope)
+        site = SiteReporter(this, scope)
         detector.reset()
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenOff, filter, RECEIVER_NOT_EXPORTED)
+        else registerReceiver(screenOff, filter)
         scope.launch(Dispatchers.IO) { applyWrites() }
         // Home-screen widget follows the count live, including the reset at midnight.
         scope.launch(Dispatchers.IO) {
@@ -74,7 +91,10 @@ class ReelAccessibilityService : AccessibilityService() {
                 t = SystemClock.elapsedRealtime(),
             )
         ) ?: return
+        handle(signal)
+    }
 
+    private fun handle(signal: UiSignal) {
         val decisions = detector.accept(signal)
         ReelServiceState.recorder.record(signal, decisions)
         for (d in decisions) {
@@ -84,6 +104,7 @@ class ReelAccessibilityService : AccessibilityService() {
                 else -> Unit
             }
             writes.trySend(d)
+            site.onDecision(d)
         }
     }
 
@@ -103,6 +124,10 @@ class ReelAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         ReelServiceState.connected = false
         if (::overlay.isInitialized) overlay.hide()
+        if (::site.isInitialized) {
+            unregisterReceiver(screenOff)
+            site.close()
+        }
         writes.close()
         scope.cancel()
         super.onDestroy()

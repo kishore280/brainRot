@@ -50,6 +50,8 @@ class Detector(
             }
 
             is UiSignal.Scrolled -> onScroll(signal)
+
+            is UiSignal.ScreenOff -> exit()
         }
     }
 

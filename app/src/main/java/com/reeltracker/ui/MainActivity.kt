@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reeltracker.service.ReelAccessibilityService
 import com.reeltracker.service.ReelServiceState
 import com.reeltracker.service.ReelWidgetProvider
+import com.reeltracker.service.SiteSettings
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
                 val last by vm.lastEventAt.collectAsStateWithLifecycle()
                 val exportMessage by vm.exportMessage.collectAsStateWithLifecycle()
 
+                val site = remember { SiteSettings(context) }
                 var tracking by remember { mutableStateOf(trackingState(context)) }
                 var is24h by remember { mutableStateOf(DateFormat.is24HourFormat(context)) }
                 LifecycleResumeEffect(Unit) {
@@ -60,6 +62,13 @@ class MainActivity : ComponentActivity() {
                     onOpenAccessibility = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                     onExport = vm::exportCapture,
                     onAddWidget = { requestWidget(context) },
+                    siteUrl = site.url,
+                    siteToken = site.token,
+                    onSaveSite = { url, token ->
+                        site.url = url
+                        site.token = token
+                        Toast.makeText(context, if (site.enabled) "Saved. Your site will show it." else "Saved. Off until both are set.", Toast.LENGTH_SHORT).show()
+                    },
                 )
             }
         }

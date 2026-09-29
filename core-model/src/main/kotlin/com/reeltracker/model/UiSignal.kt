@@ -38,4 +38,11 @@ sealed interface UiSignal {
         val sourceId: String?,
         override val t: Long,
     ) : UiSignal
+
+    /**
+     * The screen turned off (ACTION_SCREEN_OFF). Not an accessibility event: the lock screen comes
+     * from com.android.systemui, which is treated as an overlay, so without this a locked phone
+     * stayed "in Reels".
+     */
+    data class ScreenOff(override val t: Long) : UiSignal
 }

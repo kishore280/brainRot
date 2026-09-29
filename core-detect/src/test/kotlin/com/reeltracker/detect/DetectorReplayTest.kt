@@ -89,6 +89,7 @@ class DetectorReplayTest {
                 "Foreground" -> UiSignal.Foreground(o.str("pkg")!!, o.str("cls"), t)
                 "WindowState" -> UiSignal.WindowState(o.str("cls"), o.int("rootDescHash"), t)
                 "Selected" -> UiSignal.Selected(o.str("sourceId"), t)
+                "ScreenOff" -> UiSignal.ScreenOff(t)
                 "Scrolled" -> UiSignal.Scrolled(
                     o.int("from"), o.int("to"), o.int("count"), o.int("dy"), o.int("sy"),
                     o.str("sourceId"), o.str("sourceClass"), t,

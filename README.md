@@ -50,6 +50,16 @@ Shows the brain for today's stage, the count, and the stage name. Tapping it ope
 - It updates on every counted reel. When nothing is being counted, Android's minimum refresh
   (30 minutes) is what rolls it back to 0 after midnight, so the reset can lag by up to half an hour.
 
+### Now scrolling, on your site (this fork)
+
+Set **Your site** on the Today screen (an address and a token), and the phone tells your site
+while you scroll: "scrolling" when Reels opens, the running count every 30 s, and "stopped" with
+the total when you leave Reels, leave Instagram or turn the screen off. Only the count and times
+are sent: `POST <address>` with `Authorization: Bearer <token>` and
+`{"app":"instagram","scrolling":true,"reels":12,"started":<ms>,"ended":null}`.
+Leave the token empty and nothing leaves the phone. The logic is `ScrollSession` (core-model,
+tested) and `SiteReporter` (service).
+
 ---
 
 ## Install and set up

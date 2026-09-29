@@ -108,6 +108,17 @@ class DetectorTest {
     }
 
     @Test
+    fun `screen off exits, and the next swipe after unlock starts a new session`() {
+        page(1); page(2)
+        assertEquals(listOf(ExitReels), d.accept(UiSignal.ScreenOff(t++)))
+        assertFalse(d.inReels)
+        assertEquals(emptyList<Decision>(), d.accept(UiSignal.ScreenOff(t++)))
+        val out = page(3)
+        assertEquals(EnterReels, out[0])
+        assertEquals(listOf(3), confirmed(out))
+    }
+
+    @Test
     fun `main activity window state keeps us in reels`() {
         page(1)
         assertEquals(

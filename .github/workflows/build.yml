@@ -1,0 +1,30 @@
+# Tests and builds the APK on every push; download it from the run's "brainrot-debug" artifact.
+# Set the repo secret DEBUG_KEYSTORE_BASE64 (base64 of the debug.keystore that signed the APK on
+# your phone) so each build installs as an update, not as a different app.
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use the same signing key as the installed app
+        if: env.KEYSTORE != ''
+        run: mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+      - run: ./gradlew test :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brainrot-debug
+          path: app/build/outputs/apk/debug/app-debug.apk

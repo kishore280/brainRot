@@ -38,9 +38,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reeltracker.model.DayStats
@@ -68,6 +74,9 @@ fun TodayScreen(
     onOpenAccessibility: () -> Unit,
     onExport: () -> Unit,
     onAddWidget: () -> Unit,
+    siteUrl: String,
+    siteToken: String,
+    onSaveSite: (url: String, token: String) -> Unit,
 ) {
     val p = LocalPalette.current
     val clock = Clock(is24h)
@@ -95,6 +104,7 @@ fun TodayScreen(
             }
         }
         item { Sittings(stats, now, clock) }
+        item { SiteCard(siteUrl, siteToken, onSaveSite) }
         item { Footer(exportMessage, onExport) }
     }
 }
@@ -162,7 +172,7 @@ private fun TrackingCard(tracking: Tracking, onClick: () -> Unit) {
     Panel(if (tracking == Tracking.Off) "Tracking is off" else "Tracking stopped") {
         Text(
             if (tracking == Tracking.Off) {
-                "Turn on Brainrot in Accessibility settings. It reads which list scrolled and its position, nothing else, and never leaves this phone."
+                "Turn on Brainrot in Accessibility settings. It reads which list scrolled and its position, nothing else."
             } else {
                 "The service is enabled but isn't running. The system probably stopped it to save battery. Turn it off and on again in Accessibility settings, and set battery use for Brainrot to Unrestricted."
             },
@@ -341,6 +351,37 @@ private fun SittingRow(s: Sitting, maxReels: Int, live: Boolean, clock: Clock) {
     }
 }
 
+/** Where "now scrolling" goes: the site's /api/scroll and its token. Empty token = off. */
+@Composable
+private fun SiteCard(url: String, token: String, onSave: (String, String) -> Unit) {
+    val p = LocalPalette.current
+    var address by remember(url) { mutableStateOf(url) }
+    var secret by remember(token) { mutableStateOf(token) }
+    Panel("Your site", subtitle = "Shows \"now scrolling\" there. Only the count and times are sent.") {
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            label = { Text("Address") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = secret,
+            onValueChange = { secret = it },
+            label = { Text("Token") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(14.dp))
+        Button(
+            onClick = { onSave(address, secret) },
+            colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = Color.White),
+        ) { Text("Save") }
+    }
+}
+
 @Composable
 private fun Footer(exportMessage: String?, onExport: () -> Unit) {
     val p = LocalPalette.current
@@ -352,7 +393,7 @@ private fun Footer(exportMessage: String?, onExport: () -> Unit) {
             Text(it, style = MaterialTheme.typography.bodySmall, color = p.textMuted)
         }
         Spacer(Modifier.height(4.dp))
-        Text("Counted on this phone. Nothing leaves it.", style = MaterialTheme.typography.bodySmall, color = p.textMuted)
+        Text("Counted on this phone. Only the count and times go to your site, if you set one.", style = MaterialTheme.typography.bodySmall, color = p.textMuted)
     }
 }
 

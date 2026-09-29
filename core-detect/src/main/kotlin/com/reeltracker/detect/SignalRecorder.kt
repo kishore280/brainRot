@@ -61,6 +61,8 @@ class SignalRecorder(private val capacity: Int = 2000) {
                 .append(",\"sy\":").append(s.scrollY)
                 .append(",\"sourceId\":").append(str(s.sourceId))
                 .append(",\"sourceClass\":").append(str(s.sourceClass))
+
+            is UiSignal.ScreenOff -> append(",\"sig\":\"ScreenOff\"")
         }
     }
 
