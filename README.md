@@ -69,8 +69,10 @@ Every push runs the tests, builds a test APK, and installs the release build on 
 emulator with `tools/install-check.sh` (adb install, open the app, turn on the service, check that
 its `:bg` process runs). The release build is shrunk with R8 (about 2.7 MB instead of 26 MB), as
 Pano Scrobbler builds its release. The service and the widget run in their own process (`:bg`), as
-Pano's scrobbler does, and the site settings are a multi-process DataStore. A tag (`git tag v1.2 && git push origin v1.2`)
-builds one signed with your key and publishes it as a GitHub release, so it installs over the app
+Pano's scrobbler does, and the site settings are a multi-process DataStore. A release comes from a tag
+(`git tag v1.2 && git push origin v1.2`) or from **Actions → build → Run workflow** with a version
+such as `v1.2` (the workflow makes the tag). It builds an APK signed with your key and publishes it
+as a GitHub release, so it installs over the app
 on your phone as an update. The key is the secret `DEBUG_KEYSTORE_BASE64` (the base64 of the
 `debug.keystore` that signed the installed app) in the repo's **release** environment
 (Settings → Environments → release).
