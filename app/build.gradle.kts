@@ -21,16 +21,18 @@ android {
     buildFeatures { compose = true }
 
     // The release key: the file in SIGNING_KEYSTORE (CI writes it from the DEBUG_KEYSTORE_BASE64
-    // secret), else this machine's debug key. It is a debug-type keystore, so its passwords and
+    // secret); without it (local builds, the CI install check), this machine's debug key. It is a debug-type keystore, so its passwords and
     // alias are Android's standard debug ones. A named path, because CI runners may keep the
     // default debug keystore somewhere else and would then sign with a new key.
     signingConfigs {
-        create("release") {
-            val debug = getByName("debug")
-            storeFile = System.getenv("SIGNING_KEYSTORE")?.let(::file) ?: debug.storeFile
-            storePassword = debug.storePassword
-            keyAlias = debug.keyAlias
-            keyPassword = debug.keyPassword
+        System.getenv("SIGNING_KEYSTORE")?.let { path ->
+            create("release") {
+                val debug = getByName("debug")
+                storeFile = file(path)
+                storePassword = debug.storePassword
+                keyAlias = debug.keyAlias
+                keyPassword = debug.keyPassword
+            }
         }
     }
 
@@ -42,7 +44,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     packaging {
