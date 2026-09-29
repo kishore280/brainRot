@@ -2,7 +2,7 @@ package com.reeltracker.service
 
 /**
  * How rotten today's brain is. One place maps a reel count to a sprite, so the
- * overlay, the home-screen widget and the app can never disagree.
+ * notification, the home-screen widget and the app can never disagree.
  */
 object BrainRot {
 

@@ -2,7 +2,17 @@
 <resources>
     <string name="service_label">Brainrot</string>
     <string name="service_description">Counts the Instagram Reels you swipe through, on this phone only. Reads which list scrolled and its position; never reads captions, usernames or messages. If you set your site in the app, it sends only the reel count and times there.</string>
-    <string name="overlay_description">%1$d reels today. Drag to move.</string>
+    <string name="noti_channel">Brain rotting</string>
+    <string name="noti_channel_description">A silent line while you scroll Reels, then your total.</string>
+    <plurals name="noti_scrolling">
+        <item quantity="one">Brain rotting · %1$d reel</item>
+        <item quantity="other">Brain rotting · %1$d reels</item>
+    </plurals>
+    <plurals name="noti_stopped">
+        <item quantity="one">✓ %1$d reel in %2$d min</item>
+        <item quantity="other">✓ %1$d reels in %2$d min</item>
+    </plurals>
+    <string name="noti_today">%1$s · %2$d today</string>
     <string name="widget_label">Reels today</string>
     <string name="widget_description">Today\'s reel count, and how rotten your brain is.</string>
     <string name="widget_reels_today">reels today</string>

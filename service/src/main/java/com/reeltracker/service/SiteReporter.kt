@@ -1,7 +1,6 @@
 package com.reeltracker.service
 
 import android.content.Context
-import com.reeltracker.model.Decision
 import com.reeltracker.model.ScrollReport
 import com.reeltracker.model.ScrollSession
 import kotlinx.coroutines.CoroutineScope
@@ -43,9 +42,8 @@ class SiteSettings(context: Context) {
  * A lost "scrolling" is fine (the next beat replaces it); "stopped" is retried, and if it is still
  * lost the site times the session out by itself.
  */
-class SiteReporter(context: Context, private val scope: CoroutineScope) {
+class SiteReporter(context: Context, private val scope: CoroutineScope, private val session: ScrollSession) {
     private val settings = SiteSettings(context)
-    private val session = ScrollSession()
     private val outbox = Channel<ScrollReport>(Channel.UNLIMITED)
     private var beat: Job? = null
 
@@ -53,9 +51,8 @@ class SiteReporter(context: Context, private val scope: CoroutineScope) {
         scope.launch(Dispatchers.IO) { for (r in outbox) deliver(r) }
     }
 
-    /** Call on the main thread, in decision order. */
-    fun onDecision(d: Decision) {
-        val report = session.onDecision(d, System.currentTimeMillis()) ?: return
+    /** A report from [session], on the main thread, in order. */
+    fun send(report: ScrollReport) {
         outbox.trySend(report)
         beat?.cancel()
         beat = if (report.scrolling) scope.launch {

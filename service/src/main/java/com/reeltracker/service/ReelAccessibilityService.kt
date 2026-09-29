@@ -14,6 +14,7 @@ import com.reeltracker.detect.Detector
 import com.reeltracker.detect.RawEvent
 import com.reeltracker.detect.SignalMapper
 import com.reeltracker.model.Decision
+import com.reeltracker.model.ScrollSession
 import com.reeltracker.model.UiSignal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,8 +33,15 @@ class ReelAccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val detector = Detector()
     private lateinit var repo: ReelRepository
-    private lateinit var overlay: OverlayController
     private lateinit var site: SiteReporter
+    private lateinit var notifier: BrainNotifier
+
+    /** The open Reels session, shared by the site and the notification. */
+    private val session = ScrollSession()
+
+    /** Today's count, for the brain's stage in the notification. */
+    @Volatile
+    private var today = 0
 
     /** The lock screen is system UI, which counts as an overlay; screen off is what ends the session. */
     private val screenOff = object : BroadcastReceiver() {
@@ -49,8 +57,8 @@ class ReelAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         repo = ReelGraph.repository(this)
-        overlay = OverlayController(this, repo.todayCount, scope)
-        site = SiteReporter(this, scope)
+        site = SiteReporter(this, scope, session)
+        notifier = BrainNotifier(this)
         detector.reset()
         val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenOff, filter, RECEIVER_NOT_EXPORTED)
@@ -58,7 +66,10 @@ class ReelAccessibilityService : AccessibilityService() {
         scope.launch(Dispatchers.IO) { applyWrites() }
         // Home-screen widget follows the count live, including the reset at midnight.
         scope.launch(Dispatchers.IO) {
-            repo.todayCount.distinctUntilChanged().collect { ReelWidgetProvider.update(this@ReelAccessibilityService, it) }
+            repo.todayCount.distinctUntilChanged().collect {
+                today = it
+                ReelWidgetProvider.update(this@ReelAccessibilityService, it)
+            }
         }
         ReelServiceState.connected = true
     }
@@ -98,13 +109,11 @@ class ReelAccessibilityService : AccessibilityService() {
         val decisions = detector.accept(signal)
         ReelServiceState.recorder.record(signal, decisions)
         for (d in decisions) {
-            when (d) {
-                Decision.EnterReels -> overlay.show()
-                Decision.ExitReels -> overlay.hide()
-                else -> Unit
-            }
             writes.trySend(d)
-            site.onDecision(d)
+            val report = session.onDecision(d, System.currentTimeMillis())
+            report?.let(site::send)
+            // While in Reels, the running count (a reel returns no report); after, the total.
+            (session.current() ?: report)?.let { notifier.show(it, today) }
         }
     }
 
@@ -123,10 +132,10 @@ class ReelAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         ReelServiceState.connected = false
-        if (::overlay.isInitialized) overlay.hide()
         if (::site.isInitialized) {
             unregisterReceiver(screenOff)
             site.close()
+            notifier.cancel()
         }
         writes.close()
         scope.cancel()

@@ -3,6 +3,8 @@
 
     <!-- SiteReporter: only the reel count and times, only to the site set on the Today screen. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- BrainNotifier: the silent "brain rotting" notification (asked for on Android 13+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <package android:name="com.instagram.android" />

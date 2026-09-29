@@ -219,7 +219,7 @@ private fun Hero(count: Int, lastEventAt: Long?, now: Long, clock: Clock) {
 }
 
 /**
- * Today's brain, the same sprite the overlay and the widget show, with the way to put that
+ * Today's brain, the same sprite the notification and the widget show, with the way to put that
  * widget on the home screen.
  */
 @Composable

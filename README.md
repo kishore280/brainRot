@@ -6,9 +6,10 @@ An Android app that counts the Instagram Reels you swipe through, and shows you 
 a little more with every one.
 
 - **Counts reels, on the phone.** An accessibility service watches which list scrolled and where
-  it landed. It never reads captions, usernames or messages, and makes no network calls.
-- **Floating brain over Reels.** While Reels is open, a draggable brain shows today's count. It
-  drips with every reel and visibly rots as the number climbs.
+  it landed. It never reads captions, usernames or messages.
+- **A silent notification while you scroll.** "Brain rotting · 12 reels", with today's brain,
+  then "✓ 42 reels in 18 min" when you stop. No sound, no pop-up.
+- **Now scrolling, on your site** (optional, see below).
 - **Home-screen widget.** Today's count and the brain's current state, on your home screen.
 - **Today screen.** The count, time spent, sittings, reels per hour, and seconds per reel.
 
@@ -24,22 +25,21 @@ The brain has seven stages, driven by today's count. Counting resets at local mi
 | | <img src="service/src/main/res/drawable-nodpi/brain_stage_0.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_1.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_2.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_3.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_4.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_5.png" width="64"> | <img src="service/src/main/res/drawable-nodpi/brain_stage_6.png" width="64"> |
 
 The thresholds live in one place, [`BrainRot.kt`](service/src/main/java/com/reeltracker/service/BrainRot.kt),
-so the overlay, the widget and the app always agree.
+so the notification, the widget and the app always agree.
 
-### The floating counter
+### The notification
 
-| When | What it does |
+Built the way [Pano Scrobbler](https://github.com/kawaiiDango/pano-scrobbler) builds its
+now-playing notification (`PanoNotifications.android.kt`): a low-importance channel ("Brain
+rotting": no sound, no vibration, no pop-up), one notification updated in place, the brain's
+silhouette as the small icon and today's brain as the picture.
+
+| When | It shows |
 |---|---|
-| Idle | The brain breathes |
-| A reel is counted | It squishes and sheds a drop: blue sweat while it's pink, green slime from stage 4 |
-| A new stage is reached | Lightning, a shockwave ring, a shake, and the brain swaps to the next sprite |
-| Stages 5 and 6 | Smoke curls off the top, continuously |
+| In Reels | "Brain rotting · 12 reels" and "Foggy · 30 today"; it stays while you scroll |
+| After | "✓ 42 reels in 18 min"; swipe it away, or it goes by itself after an hour |
 
-- **Drag it** anywhere. On release it slides to the nearest side edge, and the position is
-  remembered for next time. A tap without dragging wobbles it.
-- **Swiping is never blocked.** The overlay window is only as big as the brain (92 × 104 dp).
-  Touches outside it go straight to Instagram.
-- It appears when you enter Reels and disappears when you leave.
+Android 13+ asks once for permission to show notifications. Counting works without it.
 
 ### The home-screen widget
 
@@ -60,6 +60,14 @@ are sent: `POST <address>` with `Authorization: Bearer <token>` and
 Leave the token empty and nothing leaves the phone. The logic is `ScrollSession` (core-model,
 tested) and `SiteReporter` (service).
 
+### Releases
+
+Every push runs the tests and builds a test APK. A tag (`git tag v1.2 && git push origin v1.2`)
+builds one signed with your key and publishes it as a GitHub release, so it installs over the app
+on your phone as an update. The key is the secret `DEBUG_KEYSTORE_BASE64` (the base64 of the
+`debug.keystore` that signed the installed app) in the repo's **release** environment
+(Settings → Environments → release).
+
 ---
 
 ## Install and set up
@@ -71,7 +79,7 @@ tested) and `SiteReporter` (service).
 3. **Let it run in the background:** Settings → Apps → Brainrot → Battery → **Unrestricted**.
    Without this, many phones (OPPO/OnePlus/Xiaomi in particular) stop the service after a while, and
    the app shows "Not running".
-4. Open Instagram, go to Reels, and swipe. The brain appears top-right.
+4. Open Instagram, go to Reels, and swipe. The "Brain rotting" notification appears.
 
 ---
 
@@ -81,7 +89,7 @@ tested) and `SiteReporter` (service).
 Instagram ──AccessibilityEvent──▶ ReelAccessibilityService ──UiSignal──▶ Detector ──Decision──▶ ReelRepository ──▶ Room
                                      (service, Android)                  (core-detect, pure)         (core-data)
                                             │                                                          │
-                                            └──── EnterReels / ExitReels ──▶ overlay         Flow<Int> ─┴─▶ overlay, widget, Today screen
+                                            └──── EnterReels / ExitReels ──▶ notification    Flow<Int> ─┴─▶ widget, Today screen
 ```
 
 1. **Only three event types are subscribed to:** a view scrolled, a window changed, a tab was
@@ -152,7 +160,7 @@ The APK lands in `app/build/outputs/apk/debug/app-debug.apk`.
 | `core-model` | `UiSignal`, `Decision`, `DayStats` (sittings, hourly buckets) | No, pure Kotlin |
 | `core-detect` | `Detector`, `IndexStrategy`, `ReelsContext`, `SignalMapper`, `SignalRecorder`, plus replay tests | No, pure Kotlin |
 | `core-data` | Room database, `ReelDao`, `ReelRepository` | Yes |
-| `service` | `ReelAccessibilityService`, the overlay (`OverlayController`, `BrainCounterView`), the widget (`ReelWidgetProvider`), `BrainRot` stages, sprites | Yes |
+| `service` | `ReelAccessibilityService`, the notification (`BrainNotifier`), `SiteReporter`, the widget (`ReelWidgetProvider`), `BrainRot` stages, sprites | Yes |
 | `app` | Compose UI: `MainActivity`, `TodayScreen`, `HourlyChart`, theme, launcher icon | Yes |
 | `spike` | M0 forensic logger, a separate app (`com.reeltracker.spike`) | Yes |
 
@@ -163,8 +171,8 @@ Key files:
 
 - [`ReelsContext.kt`](core-detect/src/main/kotlin/com/reeltracker/detect/ReelsContext.kt): Instagram's view ids. **This is what breaks when Instagram updates.**
 - [`BrainRot.kt`](service/src/main/java/com/reeltracker/service/BrainRot.kt): stage thresholds, names and sprites.
-- [`BrainCounterView.kt`](service/src/main/java/com/reeltracker/service/BrainCounterView.kt): the overlay's animations.
-- [`OverlayController.kt`](service/src/main/java/com/reeltracker/service/OverlayController.kt): the overlay window, dragging, saved position.
+- [`BrainNotifier.kt`](service/src/main/java/com/reeltracker/service/BrainNotifier.kt): the silent notification.
+- [`SiteReporter.kt`](service/src/main/java/com/reeltracker/service/SiteReporter.kt): "now scrolling" to your site.
 - [`ReelWidgetProvider.kt`](service/src/main/java/com/reeltracker/service/ReelWidgetProvider.kt): the home-screen widget.
 
 ---
@@ -207,10 +215,9 @@ The detector already picks the first strategy whose `supports()` accepts the sig
 
 - **Stage thresholds and names:** `THRESHOLDS` and `LABELS` in `BrainRot.kt`.
 - **Sprites:** `service/src/main/res/drawable-nodpi/`. `brain_stage_0` … `brain_stage_6` are the
-  stages; `fx_*` are the effects (drops, drips, smoke, bolt, ring, crack, tornado). All are
-  transparent PNGs cut from the original sprite sheet; replace any file with one of the same name.
-- **Overlay size and default position:** `W`, `H` and the brain constants in `BrainCounterView`;
-  the default spot in `OverlayController.savedPosition()`.
+  stages, transparent PNGs cut from the original sprite sheet; `ic_noti_brain` is the notification
+  icon (the launcher's monochrome brain, white on transparent). Replace any file with one of the
+  same name.
 - **Launcher icon:** `app/src/main/res/drawable-nodpi/ic_launcher_*.png`, an adaptive icon
   (background, foreground, and a monochrome layer for themed icons).
 
