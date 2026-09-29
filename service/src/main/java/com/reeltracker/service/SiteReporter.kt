@@ -21,7 +21,13 @@ import java.net.URL
  * A lost "scrolling" is fine (the next beat replaces it); "stopped" is retried, and if it is still
  * lost the site times the session out by itself.
  */
-class SiteReporter(private val settings: SiteSettings, private val scope: CoroutineScope, private val session: ScrollSession) {
+class SiteReporter(
+    private val settings: SiteSettings,
+    private val scope: CoroutineScope,
+    private val session: ScrollSession,
+    /** Today's count so far (the app's big number), read when a report goes out. */
+    private val today: () -> Int,
+) {
     private val outbox = Channel<ScrollReport>(Channel.UNLIMITED)
     private var beat: Job? = null
 
@@ -61,6 +67,7 @@ class SiteReporter(private val settings: SiteSettings, private val scope: Corout
             .put("app", "instagram")
             .put("scrolling", r.scrolling)
             .put("reels", r.reels)
+            .put("today", today())
             .put("started", r.started)
             .put("ended", r.ended ?: JSONObject.NULL)
             .toString()

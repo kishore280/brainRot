@@ -56,7 +56,8 @@ Set **Your site** on the Today screen (an address and a token), and the phone te
 while you scroll: "scrolling" when Reels opens, the running count every 30 s, and "stopped" with
 the total when you leave Reels, leave Instagram or turn the screen off. Only the count and times
 are sent: `POST <address>` with `Authorization: Bearer <token>` and
-`{"app":"instagram","scrolling":true,"reels":12,"started":<ms>,"ended":null}`.
+`{"app":"instagram","scrolling":true,"reels":12,"today":40,"started":<ms>,"ended":null}` (`reels`:
+this sitting; `today`: today's count, the app's big number).
 Leave the token empty and nothing leaves the phone. The logic is `ScrollSession` (core-model,
 tested) and `SiteReporter` (service).
 

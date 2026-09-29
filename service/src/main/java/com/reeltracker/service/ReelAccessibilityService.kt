@@ -70,7 +70,7 @@ class ReelAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         repo = ReelGraph.repository(this)
-        site = SiteReporter(SiteSettings.get(this), scope, session)
+        site = SiteReporter(SiteSettings.get(this), scope, session) { today }
         notifier = BrainNotifier(this)
         detector.reset()
         listen(screenOff, Intent.ACTION_SCREEN_OFF)
