@@ -10,7 +10,11 @@ abstract class ReelDatabase : RoomDatabase() {
     abstract fun dao(): ReelDao
 }
 
-/** Process-wide wiring. The service and the UI run in one process and share one repository. */
+/**
+ * Process-wide wiring: one repository per process. The service runs in its own process (":bg"), so
+ * the app and the service each open the same file. No multi-instance invalidation, as in Pano
+ * Scrobbler (it keeps the main process's caches alive): the app reads fresh data when it opens.
+ */
 object ReelGraph {
     @Volatile
     private var repo: ReelRepository? = null

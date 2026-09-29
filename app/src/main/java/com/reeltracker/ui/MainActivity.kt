@@ -4,11 +4,13 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.Manifest
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,9 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reeltracker.service.ReelAccessibilityService
-import com.reeltracker.service.ReelServiceState
 import com.reeltracker.service.ReelWidgetProvider
-import com.reeltracker.service.SiteSettings
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -47,8 +47,7 @@ class MainActivity : ComponentActivity() {
                 val stats by vm.stats.collectAsStateWithLifecycle()
                 val last by vm.lastEventAt.collectAsStateWithLifecycle()
                 val exportMessage by vm.exportMessage.collectAsStateWithLifecycle()
-
-                val site = remember { SiteSettings(context) }
+                val site by vm.site.collectAsStateWithLifecycle()
                 var tracking by remember { mutableStateOf(trackingState(context)) }
                 var is24h by remember { mutableStateOf(DateFormat.is24HourFormat(context)) }
                 LifecycleResumeEffect(Unit) {
@@ -67,14 +66,16 @@ class MainActivity : ComponentActivity() {
                     is24h = is24h,
                     exportMessage = exportMessage,
                     onOpenAccessibility = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
-                    onExport = vm::exportCapture,
+                    onExport = {
+                        if (tracking == Tracking.On) vm.exportCapture()
+                        else Toast.makeText(context, "Tracking is off, so there is nothing to export.", Toast.LENGTH_SHORT).show()
+                    },
                     onAddWidget = { requestWidget(context) },
-                    siteUrl = site.url,
-                    siteToken = site.token,
+                    site = site,
                     onSaveSite = { url, token ->
-                        site.url = url
-                        site.token = token
-                        Toast.makeText(context, if (site.enabled) "Saved. Your site will show it." else "Saved. Off until both are set.", Toast.LENGTH_SHORT).show()
+                        vm.saveSite(url, token) {
+                            Toast.makeText(context, if (it.enabled) "Saved. Your site will show it." else "Saved. Off until both are set.", Toast.LENGTH_SHORT).show()
+                        }
                     },
                 )
             }
@@ -119,7 +120,16 @@ private fun trackingState(context: Context): Tracking {
         ?.any { ComponentName.unflattenFromString(it) == me } == true
     return when {
         !enabled -> Tracking.Off
-        ReelServiceState.connected -> Tracking.On
+        running(context, me) -> Tracking.On
         else -> Tracking.Stalled
     }
 }
+
+/**
+ * Whether the system has the service bound and running. The service lives in its own process
+ * (":bg"), so the app cannot read a flag from it; AccessibilityManager lists the running ones.
+ */
+private fun running(context: Context, me: ComponentName): Boolean =
+    context.getSystemService(AccessibilityManager::class.java)
+        .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        .any { it.resolveInfo.serviceInfo.let { s -> ComponentName(s.packageName, s.name) == me } }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.SystemClock
+import android.widget.Toast
 import android.view.accessibility.AccessibilityEvent
 import com.reeltracker.data.ReelGraph
 import com.reeltracker.data.ReelRepository
@@ -23,6 +24,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Adapter. Android types live here and nowhere else: AccessibilityEvent -> UiSignal -> Detector,
@@ -43,6 +45,17 @@ class ReelAccessibilityService : AccessibilityService() {
     @Volatile
     private var today = 0
 
+    /** The app's "Export debug capture": the signals are here, in this process. */
+    private val export = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            scope.launch(Dispatchers.IO) {
+                val message = runCatching { "Saved to ${CaptureExport.write(context)}" }
+                    .getOrElse { "Export failed: ${it.message}" }
+                withContext(Dispatchers.Main) { Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
     /** The lock screen is system UI, which counts as an overlay; screen off is what ends the session. */
     private val screenOff = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) =
@@ -57,12 +70,11 @@ class ReelAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         repo = ReelGraph.repository(this)
-        site = SiteReporter(this, scope, session)
+        site = SiteReporter(SiteSettings.get(this), scope, session)
         notifier = BrainNotifier(this)
         detector.reset()
-        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenOff, filter, RECEIVER_NOT_EXPORTED)
-        else registerReceiver(screenOff, filter)
+        listen(screenOff, Intent.ACTION_SCREEN_OFF)
+        listen(export, CaptureExport.ACTION)
         scope.launch(Dispatchers.IO) { applyWrites() }
         // Home-screen widget follows the count live, including the reset at midnight.
         scope.launch(Dispatchers.IO) {
@@ -71,7 +83,6 @@ class ReelAccessibilityService : AccessibilityService() {
                 ReelWidgetProvider.update(this@ReelAccessibilityService, it)
             }
         }
-        ReelServiceState.connected = true
     }
 
     override fun onAccessibilityEvent(e: AccessibilityEvent) {
@@ -128,12 +139,18 @@ class ReelAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun listen(receiver: BroadcastReceiver, action: String) {
+        val filter = IntentFilter(action)
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
+        else registerReceiver(receiver, filter)
+    }
+
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
-        ReelServiceState.connected = false
         if (::site.isInitialized) {
             unregisterReceiver(screenOff)
+            unregisterReceiver(export)
             site.close()
             notifier.cancel()
         }

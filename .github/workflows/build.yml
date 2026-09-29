@@ -1,5 +1,5 @@
 # Every push: the tests and a test APK (the "brainrot-debug" artifact of the run).
-# A tag like v1.2: the same, signed with your key, published as a GitHub release you install from.
+# A tag like v1.2: a shrunk release build (R8), signed with your key, published as a GitHub release.
 # The key: Settings → Environments → "release" → secret DEBUG_KEYSTORE_BASE64 (base64 of the
 # debug.keystore that signed the app on your phone), so each release installs as an update.
 name: build
@@ -27,6 +27,31 @@ jobs:
           name: brainrot-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
+  # A real install on Android 15: adb install, open the app, turn on the accessibility service,
+  # and check that the app and its ":bg" process run (reactivecircus/android-emulator-runner).
+  install:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :app:assembleRelease
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          script: ./tools/install-check.sh app/build/outputs/apk/release/app-release.apk
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -46,10 +71,10 @@ jobs:
         run: |
           if [ -z "$KEYSTORE" ]; then echo "::error::Add DEBUG_KEYSTORE_BASE64 to the release environment"; exit 1; fi
           mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
-      - run: ./gradlew test :app:assembleDebug
+      - run: ./gradlew test :app:assembleRelease
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk "brainrot-$GITHUB_REF_NAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "brainrot-$GITHUB_REF_NAME.apk"
           gh release create "$GITHUB_REF_NAME" "brainrot-$GITHUB_REF_NAME.apk" --generate-notes

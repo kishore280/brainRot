@@ -18,4 +18,6 @@ dependencies {
     api(project(":core-detect"))
     api(project(":core-data"))
     implementation(libs.coroutines.android)
+    // Settings shared by the app and the service's own process, as Pano Scrobbler does it.
+    api(libs.datastore.core)
 }

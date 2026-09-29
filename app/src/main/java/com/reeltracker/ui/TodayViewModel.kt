@@ -1,26 +1,21 @@
 package com.reeltracker.ui
 
 import android.app.Application
-import android.content.ContentValues
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.reeltracker.data.ReelGraph
 import com.reeltracker.model.DayStats
-import com.reeltracker.service.ReelServiceState
-import kotlinx.coroutines.Dispatchers
+import com.reeltracker.service.CaptureExport
+import com.reeltracker.service.Site
+import com.reeltracker.service.SiteSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class TodayViewModel(app: Application) : AndroidViewModel(app) {
+class TodayViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val repo = ReelGraph.repository(app)
 
@@ -33,42 +28,18 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     private val _exportMessage = MutableStateFlow<String?>(null)
     val exportMessage: StateFlow<String?> = _exportMessage.asStateFlow()
 
-    /** Writes the SignalRecorder ring buffer to Download/. Doubles as a replay-test fixture. */
+    /** Asks the service, which holds the signals in its own process, to write them to Download/. */
     fun exportCapture() {
-        viewModelScope.launch {
-            _exportMessage.value = try {
-                "Saved to ${withContext(Dispatchers.IO) { writeCapture() }}"
-            } catch (e: Exception) {
-                "Export failed: ${e.message}"
-            }
-        }
+        CaptureExport.request(getApplication())
+        _exportMessage.value = "Saving to Download/. A message shows when it is there."
     }
 
-    private fun writeCapture(): String {
-        val app = getApplication<Application>()
-        val ig = try {
-            app.packageManager.getPackageInfo("com.instagram.android", 0).versionName
-        } catch (_: PackageManager.NameNotFoundException) {
-            null
-        }
-        val json = ReelServiceState.recorder.exportJson(
-            mapOf(
-                "igVersion" to ig,
-                "device" to "${Build.MANUFACTURER} ${Build.MODEL}",
-                "sdk" to Build.VERSION.SDK_INT.toString(),
-                "exportedAt" to System.currentTimeMillis().toString(),
-            )
-        )
-        val name = "reel-capture-${System.currentTimeMillis()}.json"
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, name)
-            put(MediaStore.Downloads.MIME_TYPE, "application/json")
-            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-        }
-        val resolver = app.contentResolver
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: error("could not create file")
-        resolver.openOutputStream(uri)!!.use { it.write(json.toByteArray()) }
-        return "Download/$name"
+    private val siteSettings = SiteSettings.get(app)
+
+    /** The site for "now scrolling"; null until read. */
+    val site: StateFlow<Site?> = siteSettings.data.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun saveSite(url: String, token: String, saved: (Site) -> Unit) {
+        viewModelScope.launch { saved(siteSettings.updateData { Site(url.trim(), token.trim()) }) }
     }
 }

@@ -25,7 +25,7 @@ object ReelsContext {
     private val hostWindows = setOf("com.instagram.mainactivity.InstagramMainActivity")
 
     /** Windows from other packages that float over Instagram without replacing it. */
-    private val overlayPackages = setOf("com.android.systemui", "com.reeltracker")
+    private val overlayPackages = setOf("com.android.systemui")
 
     fun isPager(sourceId: String?): Boolean = sourceId == PAGER_ID
 

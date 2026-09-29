@@ -62,7 +62,14 @@ tested) and `SiteReporter` (service).
 
 ### Releases
 
-Every push runs the tests and builds a test APK. A tag (`git tag v1.2 && git push origin v1.2`)
+This fork's app id is `com.kishore.brainrot`, so it installs next to the original Brainrot
+(`com.reeltracker`, signed with another key) instead of failing to install over it.
+
+Every push runs the tests, builds a test APK, and installs the release build on an Android 15
+emulator with `tools/install-check.sh` (adb install, open the app, turn on the service, check that
+its `:bg` process runs). The release build is shrunk with R8 (about 2.7 MB instead of 26 MB), as
+Pano Scrobbler builds its release. The service and the widget run in their own process (`:bg`), as
+Pano's scrobbler does, and the site settings are a multi-process DataStore. A tag (`git tag v1.2 && git push origin v1.2`)
 builds one signed with your key and publishes it as a GitHub release, so it installs over the app
 on your phone as an update. The key is the secret `DEBUG_KEYSTORE_BASE64` (the base64 of the
 `debug.keystore` that signed the installed app) in the repo's **release** environment

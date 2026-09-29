@@ -2,11 +2,7 @@ package com.reeltracker.service
 
 import com.reeltracker.detect.SignalRecorder
 
-/** Shared between the service and the UI, which run in the same process. */
-object ReelServiceState {
+/** The service's recent signals, in its own process (":bg"); the app asks for them with [CaptureExport]. */
+internal object ReelServiceState {
     val recorder = SignalRecorder(capacity = 2000)
-
-    @Volatile
-    var connected: Boolean = false
-        internal set
 }

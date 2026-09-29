@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reeltracker.model.DayStats
 import com.reeltracker.model.Sitting
+import com.reeltracker.service.Site
 
 enum class Tracking { On, Stalled, Off }
 
@@ -74,8 +75,7 @@ fun TodayScreen(
     onOpenAccessibility: () -> Unit,
     onExport: () -> Unit,
     onAddWidget: () -> Unit,
-    siteUrl: String,
-    siteToken: String,
+    site: Site?,
     onSaveSite: (url: String, token: String) -> Unit,
 ) {
     val p = LocalPalette.current
@@ -104,7 +104,7 @@ fun TodayScreen(
             }
         }
         item { Sittings(stats, now, clock) }
-        item { SiteCard(siteUrl, siteToken, onSaveSite) }
+        site?.let { item { SiteCard(it.url, it.token, onSaveSite) } }
         item { Footer(exportMessage, onExport) }
     }
 }
